@@ -2,7 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 import * as spaces from 'gymjs/spaces'
 
-import { RolloutBufferSamples } from './type_aliases';
+import { RolloutBufferSamples } from './type_aliases.js';
 
 abstract class BaseBuffer {
     protected bufferSize: number;
@@ -43,9 +43,11 @@ abstract class BaseBuffer {
     }
 
     sample(batchSize: number): tf.Tensor[] {
-        const upperBound = this.full ? this.bufferSize : this.pos;
-        const batchInds = tf.randomUniformInt([batchSize], 0, upperBound);
-        return this.getSamples(batchInds);
+        return tf.tidy(() => {
+            const upperBound = this.full ? this.bufferSize : this.pos;
+            const batchInds = tf.randomUniformInt([batchSize], 0, upperBound);
+            return this.getSamples(batchInds);
+        })
     }
 
     protected abstract getSamples(indices: tf.Tensor): tf.Tensor[];
@@ -68,20 +70,22 @@ export class RolloutBuffer extends BaseBuffer {
         super(bufferSize, observationSpace, actionSpace);
         this.gaeLambda = gaeLambda;
         this.gamma = gamma;
+        // Unfortunately I can't just call this.reset() and expect TS to figure it out
         this.observations = tf.zeros([this.bufferSize, ...this.observationSpace.shape], this.observationSpace.dtype);
-        this.actions = tf.zeros([this.bufferSize, ...this.actionSpace.shape], this.actionSpace.dtype);
+        this.actions = tf.zeros([this.bufferSize], this.actionSpace.dtype);
         this.rewards = tf.zeros([this.bufferSize], "float32");
         this.returns = tf.zeros([this.bufferSize], "float32");
         this.episodeStarts = tf.zeros([this.bufferSize], "float32");
         this.values = tf.zeros([this.bufferSize], "float32");
         this.logProbs = tf.zeros([this.bufferSize], "float32");
         this.advantages = tf.zeros([this.bufferSize], "float32");
-        this.reset();
+        super.reset();
     }
 
     reset(): void {
         this.observations = tf.zeros([this.bufferSize, ...this.observationSpace.shape], this.observationSpace.dtype);
-        this.actions = tf.zeros([this.bufferSize, ...this.actionSpace.shape], this.actionSpace.dtype);
+        // Fix action space later
+        this.actions = tf.zeros([this.bufferSize], this.actionSpace.dtype);
         this.rewards = tf.zeros([this.bufferSize], "float32");
         this.returns = tf.zeros([this.bufferSize], "float32");
         this.episodeStarts = tf.zeros([this.bufferSize], "float32");
@@ -92,18 +96,34 @@ export class RolloutBuffer extends BaseBuffer {
     }
 
     add(obs: tf.Tensor, action: tf.Tensor, reward: tf.Tensor, episodeStart: tf.Tensor, value: tf.Tensor, logProb: tf.Tensor): void {
-        this.observations = tf.tensorScatterUpdate(this.observations, tf.tensor1d([this.pos]), tf.stack([obs]));
-        this.actions = tf.tensorScatterUpdate(this.observations, tf.tensor1d([this.pos]), tf.stack([action]));
-        this.rewards = tf.tensorScatterUpdate(this.observations, tf.tensor1d([this.pos]), tf.stack([reward]));
-        this.episodeStarts = tf.tensorScatterUpdate(this.observations, tf.tensor1d([this.pos]), tf.stack([episodeStart]));
-        this.values = tf.tensorScatterUpdate(this.observations, tf.tensor1d([this.pos]), tf.stack([value]));
-        this.logProbs = tf.tensorScatterUpdate(this.observations, tf.tensor1d([this.pos]), tf.stack([logProb]));
+        this.observations = this.observations.add(tf.tensorScatterUpdate(this.observations, tf.tensor1d([this.pos], "int32"), tf.stack([obs])));
+        this.actions = this.actions.add(tf.tensorScatterUpdate(this.actions, tf.tensor1d([this.pos], "int32"), action));
+        this.rewards = this.rewards.add(tf.tensorScatterUpdate(this.rewards, tf.tensor1d([this.pos], "int32"), reward));
+        this.episodeStarts = this.episodeStarts.add(tf.tensorScatterUpdate(this.episodeStarts, tf.tensor1d([this.pos], "int32"), episodeStart));
+        this.values = this.values.add(tf.tensorScatterUpdate(this.values, tf.tensor1d([this.pos], "int32"), value.reshape([1])));
+        this.logProbs = this.logProbs.add(tf.tensorScatterUpdate(this.logProbs, tf.tensor1d([this.pos], "int32"), logProb.reshape([1])));
+        
 
         this.pos += 1;
         if(this.pos == this.bufferSize) {
             this.full = true;
         }
     }
+
+    get(batchSize: number): RolloutBufferSamples[] {
+        let batches = [];
+        let indices = tf.randomUniformInt([this.bufferSize], 0, this.bufferSize - 1);
+        for(let startIdx = 0; startIdx < this.bufferSize; startIdx++) {
+            let endIndex = startIdx + batchSize;
+            if(endIndex >= this.bufferSize) {
+                endIndex = this.bufferSize - 1;
+            }
+
+            batches.push(this.getSamples(indices));
+        }
+
+        return batches;
+    } 
 
     protected getSamples(indices: tf.Tensor): RolloutBufferSamples {
         let data = [
@@ -119,6 +139,30 @@ export class RolloutBuffer extends BaseBuffer {
     }
 
     computeReturnsAndAdvantages(lastValues: tf.Tensor, dones: tf.Tensor): void {
+        // this.returns = tf.tidy(() => {
+        //     lastValues = lastValues.flatten();
+
+        //     let lastGaeLam = tf.zeros(dones.shape);
+        //     for(let step = this.bufferSize - 1; step >= 0; step--) {
+        //         let nextNonTerminal: tf.Tensor;
+        //         let nextValues: tf.Tensor;
+        //         if(step == this.bufferSize - 1) {
+        //             nextNonTerminal = tf.scalar(1).sub(dones.asType("float32"));
+        //             nextValues = lastValues;
+        //         } else {
+        //             nextNonTerminal = tf.scalar(1).sub(this.episodeStarts.gather(step + 1));
+        //             nextValues = this.values.gather(step + 1);
+        //         }
+
+        //         // Don't blame me for this ugly line of code, blame js/ts for not supporting operator overloading
+        //         let delta = this.rewards.gather(step).add(tf.scalar(this.gamma).mul(nextValues).mul(nextNonTerminal)).sub(this.values.gather(step));
+        //         lastGaeLam = delta.add(tf.scalar(this.gamma * this.gaeLambda).mul(nextNonTerminal).mul(lastGaeLam))
+
+        //         this.advantages = tf.tensorScatterUpdate(this.advantages, tf.tensor1d([step]), tf.stack([lastGaeLam]));
+        //     }
+
+        //     return this.advantages.add(this.values);
+        // })
         lastValues = lastValues.flatten();
 
         let lastGaeLam = tf.zeros(dones.shape);
@@ -136,11 +180,9 @@ export class RolloutBuffer extends BaseBuffer {
             // Don't blame me for this ugly line of code, blame js/ts for not supporting operator overloading
             let delta = this.rewards.gather(step).add(tf.scalar(this.gamma).mul(nextValues).mul(nextNonTerminal)).sub(this.values.gather(step));
             lastGaeLam = delta.add(tf.scalar(this.gamma * this.gaeLambda).mul(nextNonTerminal).mul(lastGaeLam))
-
-            this.advantages = tf.tensorScatterUpdate(this.advantages, tf.tensor1d([step]), tf.stack([lastGaeLam]));
+            this.advantages = this.advantages.add(tf.tensorScatterUpdate(this.advantages, tf.tensor1d([step], "int32"), lastGaeLam));
         }
-
+        
         this.returns = this.advantages.add(this.values);
     }
-
 }
