@@ -53,8 +53,8 @@ export class CategoricalDistribution extends Distribution {
             if(this.actionLogits === null) {
                 throw new Error("Something went wrong!");
             }
-            const logprobabilitiesAll = tf.logSoftmax(this.actionLogits)
-            return logprobabilitiesAll.mul(tf.log(logprobabilitiesAll.add(tf.scalar(1e-10)))).sum(-1);
+            const logprobabilitiesAll = tf.logSoftmax(this.actionLogits.add(tf.scalar(1e-10)));
+            return logprobabilitiesAll.sum(-1);
         })
     }
 
