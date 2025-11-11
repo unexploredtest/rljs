@@ -43,9 +43,8 @@ export class PPO extends OnPolicyAlgorithm {
                 let policyLoss2 = advantages.mul(tf.clipByValue(ratio, 1 - this.clipRange, 1 + this.clipRange));
                 let policyLoss = tf.neg(tf.minimum(policyLoss1, policyLoss2)).mean();
 
-                let valueLoss = (returns.sub(values)).square().mean();
+                let valueLoss = (returns.sub(values)).square().mean().mul(this.vfCoef);
 
-                // Do the entropy later
                 let entropyLoss = tf.neg(entropy.mean()).mul(tf.scalar(this.entCoef));
 
                 let loss = policyLoss.add(entropyLoss).add(valueLoss);
