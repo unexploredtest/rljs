@@ -53,8 +53,18 @@ export class PPO extends OnPolicyAlgorithm {
             }
 
             const result = this.policy.optim.computeGradients(optFunc);
-            let normedGrad = result.grads;
-            this.policy.optim.applyGradients(result.grads);
+            // https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html
+            let normedGrad: tf.NamedTensorMap = {};
+            for (const key in result.grads) {
+                let tensorGrad = result.grads[key];
+                let totalNorm = tf.norm(tensorGrad);
+                let clipCoef = tf.scalar(this.maxGradNorm).div(totalNorm.add(tf.scalar(1e-6)))
+                let clipCoefClamped = tf.clipByValue(clipCoef, 0, 1);
+                normedGrad[key] = tensorGrad.mul(clipCoefClamped);
+            }
+            
+            this.policy.optim.applyGradients(normedGrad);
+            result.grads
 
             // batches.forEach((batch) => {
             //     tf.dispose(batch);
