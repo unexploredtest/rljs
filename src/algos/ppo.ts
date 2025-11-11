@@ -11,7 +11,7 @@ export class PPO extends OnPolicyAlgorithm {
     private nEpochs: number;
     constructor(env: gym.Env | gym.Wrapper,
         lr: number = 3e-4, nSteps: number = 2048, gamma: number = 0.99, gaeLmbda: number = 0.95,
-        entCoef: number = 0, vfCoef: number = 0.5, maxGradNorm: number = 0.5, clipRange: number = 0.2,
+        entCoef: number = 0.2, vfCoef: number = 0.5, maxGradNorm: number = 0.5, clipRange: number = 0.2,
         batchSize: number = 64, nEpochs: number = 10) {
         super(env, lr, nSteps, gamma, gaeLmbda, entCoef, vfCoef, maxGradNorm);
 
@@ -33,10 +33,7 @@ export class PPO extends OnPolicyAlgorithm {
 
             // for(let j = 0; j < batches.length; j++) {
             console.log(i + " : " + batches.length + " : ");
-            let [observations, actions, oldValues, oldLogProb, advantages, returns] = batches[0];
-
-            // let [values, logProb, entropy] = this.policy.evaluateActions(observations, actions);
-            // values = values.flatten();
+            let [observations, actions, oldValues, oldLogProb, advantages, returns] = batches[0];;
 
             const optFunc = () => {
                 let [values, logProb, entropy] = this.policy.evaluateActions(observations, actions);
@@ -49,12 +46,14 @@ export class PPO extends OnPolicyAlgorithm {
                 let valueLoss = (returns.sub(values)).square().mean();
 
                 // Do the entropy later
+                let entropyLoss = tf.neg(entropy.mean()).mul(tf.scalar(this.entCoef));
 
-                let loss = policyLoss.add(valueLoss);
+                let loss = policyLoss.add(entropyLoss).add(valueLoss);
                 return loss.asScalar();
             }
 
             const result = this.policy.optim.computeGradients(optFunc);
+            let normedGrad = result.grads;
             this.policy.optim.applyGradients(result.grads);
 
             // batches.forEach((batch) => {
