@@ -57,7 +57,9 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
 
             this.buffer.add(this.lastObs, tf.tensor([action], [1], "int32"), tf.tensor([reward]), this.lastEpisodeStarts, values, logProbs);
 
+            // tf.dispose(this.lastObs);
             this.lastObs = obs;
+            // tf.dispose(this.lastEpisodeStarts);
             this.lastEpisodeStarts = tf.tensor([done], [1], "float32");
 
             if(done === true) {
@@ -67,6 +69,10 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
                 k = 0;
                 i++;
             }
+            // tf.dispose(actions);
+            // tf.dispose(values);
+            // tf.dispose(logProbs);
+            // tf.dispose(obs);
         }
 
         console.log("avg: " + avg / i)

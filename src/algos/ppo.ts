@@ -26,9 +26,10 @@ export class PPO extends OnPolicyAlgorithm {
         let valueLosses: tf.Tensor[] = [];
         let clipFractions: tf.Tensor[] = [];
 
+        let batches = this.buffer.get(this.buffer.size);
+
         for(let i = 0; i < this.nEpochs; i++) {
             let approxKlDivs: tf.Tensor[] = [];
-            let batches = this.buffer.get(this.buffer.size);
 
             // for(let j = 0; j < batches.length; j++) {
             console.log(i + " : " + batches.length + " : ");
@@ -55,7 +56,13 @@ export class PPO extends OnPolicyAlgorithm {
 
             const result = this.policy.optim.computeGradients(optFunc);
             this.policy.optim.applyGradients(result.grads);
+
+            // batches.forEach((batch) => {
+            //     tf.dispose(batch);
+            // })
             // }
         }
+
+        tf.dispose(batches);
     }
 }
