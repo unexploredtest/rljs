@@ -62,6 +62,7 @@ export class RolloutBuffer extends BaseBuffer {
     logProbs: tf.Tensor[];
     values: tf.Tensor[];
     advantages: tf.Tensor[];
+    stackedTensors: tf.Tensor[];
 
     gaeLambda: number;
     gamma: number;
@@ -79,25 +80,30 @@ export class RolloutBuffer extends BaseBuffer {
         this.values = [];
         this.logProbs = [];
         this.advantages = [];
+        this.stackedTensors = []
         super.reset();
     }
 
     reset(): void {
-        tf.dispose(this.observations);
+        tf.dispose([
+            this.observations, 
+            this.actions, 
+            this.returns, 
+            this.episodeStarts, 
+            this.values, 
+            this.logProbs, 
+            this.advantages, 
+            this.stackedTensors
+        ]);
+
         this.observations = [];
-        tf.dispose(this.actions);
         this.actions = [];
-        tf.dispose(this.returns);
         this.returns = tf.zeros([this.bufferSize]);
-        tf.dispose(this.episodeStarts);
         this.episodeStarts = [];
-        tf.dispose(this.values);
         this.values = [];
-        tf.dispose(this.logProbs);
         this.logProbs = [];
-        tf.dispose(this.advantages);
         this.advantages = [];
-        // Fix action space later
+        this.stackedTensors = [];
         super.reset();
     }
 
@@ -116,34 +122,47 @@ export class RolloutBuffer extends BaseBuffer {
         }
     }
 
-    get(batchSize: number): RolloutBufferSamples[] {
-        let indices = tf.range(0, this.pos, 1, "int32");
-        let batches = [this.getSamples(indices)];
-        tf.dispose(indices);
-        // let indices = tf.randomUniformInt([this.bufferSize], 0, this.bufferSize - 1);
-        // for(let startIdx = 0; startIdx < this.bufferSize; startIdx++) {
-        //     let endIndex = startIdx + batchSize;
-        //     if(endIndex >= this.bufferSize) {
-        //         endIndex = this.bufferSize - 1;
-        //     }
+    *get(batchSize: number): Generator<RolloutBufferSamples> {
+        let indicesArray = Array.from(Array(this.pos).keys())
+        tf.util.shuffle(indicesArray);
+        const indices = tf.tensor(indicesArray, [this.pos], "int32");
+        for(let startIdx = 0; startIdx < this.pos; startIdx += batchSize) {
+            let endIndex = startIdx + batchSize;
+            if(endIndex >= this.pos) {
+                endIndex = this.pos - 1;
+            }
 
-        //     batches.push(this.getSamples(indices));
-        // }
-
-        return batches;
-    } 
+            yield this.getSamples(indices.gather(tf.range(startIdx, endIndex, 1, "int32")));
+        }
+    }
 
     protected getSamples(indices: tf.Tensor): RolloutBufferSamples {
-        let data = [
-            tf.stack(this.observations).reshape([this.pos, ...this.observationSpace.shape]).gather(indices),
-            tf.stack(this.actions).reshape([this.pos, ...this.actionSpace.shape]).gather(indices),
-            tf.stack(this.values).reshape([this.pos]).gather(indices),
-            tf.stack(this.logProbs).reshape([this.pos]).gather(indices),
-            tf.stack(this.advantages).reshape([this.pos]).gather(indices),
-            this.returns.gather(indices)
-        ] as RolloutBufferSamples;
+        if(this.stackedTensors.length === 0) {
+            this.computeStackedTensors();
+        }
 
-        return data;
+        return tf.tidy(() => {
+            const data = [
+                this.stackedTensors[0].gather(indices),
+                this.stackedTensors[1].gather(indices),
+                this.stackedTensors[2].gather(indices),
+                this.stackedTensors[3].gather(indices),
+                this.stackedTensors[4].gather(indices),
+                this.returns.gather(indices)
+            ] as RolloutBufferSamples;
+
+            return data;
+        })
+    }
+
+    computeStackedTensors() {
+        tf.dispose(this.stackedTensors);
+        this.stackedTensors = [];
+        this.stackedTensors.push(tf.stack(this.observations).reshape([this.pos, ...this.observationSpace.shape])),
+        this.stackedTensors.push(tf.stack(this.actions).reshape([this.pos, ...this.actionSpace.shape])),
+        this.stackedTensors.push(tf.stack(this.values).reshape([this.pos])),
+        this.stackedTensors.push(tf.stack(this.logProbs).reshape([this.pos])),
+        this.stackedTensors.push(tf.stack(this.advantages).reshape([this.pos]))
     }
 
     computeReturnsAndAdvantages(lastValues: tf.Tensor, dones: tf.Tensor): void {

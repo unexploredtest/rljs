@@ -26,51 +26,42 @@ export class PPO extends OnPolicyAlgorithm {
         let valueLosses: tf.Tensor[] = [];
         let clipFractions: tf.Tensor[] = [];
 
-        let batches = this.buffer.get(this.buffer.size);
-
         for(let i = 0; i < this.nEpochs; i++) {
             let approxKlDivs: tf.Tensor[] = [];
 
-            // for(let j = 0; j < batches.length; j++) {
-            console.log(i + " : " + batches.length + " : ");
-            let [observations, actions, oldValues, oldLogProb, advantages, returns] = batches[0];;
+            for (let batch of this.buffer.get(this.batchSize)) {
+                let [observations, actions, oldValues, oldLogProb, advantages, returns] = batch;
 
-            const optFunc = () => {
-                let [values, logProb, entropy] = this.policy.evaluateActions(observations, actions);
-                values = values.flatten();
-                let ratio = tf.exp(logProb.sub(oldLogProb));
-                let policyLoss1 = advantages.mul(ratio);
-                let policyLoss2 = advantages.mul(tf.clipByValue(ratio, 1 - this.clipRange, 1 + this.clipRange));
-                let policyLoss = tf.neg(tf.minimum(policyLoss1, policyLoss2)).mean();
+                const optFunc = () => {
+                    let [values, logProb, entropy] = this.policy.evaluateActions(observations, actions);
+                    values = values.flatten();
+                    let ratio = tf.exp(logProb.sub(oldLogProb));
+                    let policyLoss1 = advantages.mul(ratio);
+                    let policyLoss2 = advantages.mul(tf.clipByValue(ratio, 1 - this.clipRange, 1 + this.clipRange));
+                    let policyLoss = tf.neg(tf.minimum(policyLoss1, policyLoss2)).mean();
 
-                let valueLoss = (returns.sub(values)).square().mean().mul(this.vfCoef);
+                    let valueLoss = (returns.sub(values)).square().mean().mul(this.vfCoef);
 
-                let entropyLoss = tf.neg(entropy.mean()).mul(tf.scalar(this.entCoef));
+                    let entropyLoss = tf.neg(entropy.mean()).mul(tf.scalar(this.entCoef));
 
-                let loss = policyLoss.add(entropyLoss).add(valueLoss);
-                return loss.asScalar();
+                    let loss = policyLoss.add(entropyLoss).add(valueLoss);
+                    return loss.asScalar();
+                }
+
+                const result = this.policy.optim.computeGradients(optFunc);
+                // https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html
+                let normedGrad: tf.NamedTensorMap = {};
+                for (const key in result.grads) {
+                    let tensorGrad = result.grads[key];
+                    let totalNorm = tf.norm(tensorGrad);
+                    let clipCoef = tf.scalar(this.maxGradNorm).div(totalNorm.add(tf.scalar(1e-6)))
+                    let clipCoefClamped = tf.clipByValue(clipCoef, 0, 1);
+                    normedGrad[key] = tensorGrad.mul(clipCoefClamped);
+                }
+                
+                this.policy.optim.applyGradients(normedGrad);
+                result.grads
             }
-
-            const result = this.policy.optim.computeGradients(optFunc);
-            // https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html
-            let normedGrad: tf.NamedTensorMap = {};
-            for (const key in result.grads) {
-                let tensorGrad = result.grads[key];
-                let totalNorm = tf.norm(tensorGrad);
-                let clipCoef = tf.scalar(this.maxGradNorm).div(totalNorm.add(tf.scalar(1e-6)))
-                let clipCoefClamped = tf.clipByValue(clipCoef, 0, 1);
-                normedGrad[key] = tensorGrad.mul(clipCoefClamped);
-            }
-            
-            this.policy.optim.applyGradients(normedGrad);
-            result.grads
-
-            // batches.forEach((batch) => {
-            //     tf.dispose(batch);
-            // })
-            // }
         }
-
-        tf.dispose(batches);
     }
 }
