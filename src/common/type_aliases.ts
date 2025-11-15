@@ -1,5 +1,8 @@
 import * as tf from '@tensorflow/tfjs';
 
+// Couldn't find where TF exported this type so added it here manually
+export type ActivationType = 'elu' | 'hardSigmoid' | 'linear' | 'relu' | 'relu6' | 'selu' | 'sigmoid' | 'softmax' | 'softplus' | 'softsign' | 'tanh' | 'swish' | 'mish' | 'gelu' | 'gelu_new';
+
 export type RolloutBufferSamples = [
     observations: tf.Tensor,
     actions: tf.Tensor,
@@ -10,7 +13,7 @@ export type RolloutBufferSamples = [
 ]
 
 export interface BaseHyperParams {
-    lr: number;
+
 }
 
 export interface OnPolicyHyperParams extends BaseHyperParams {
@@ -27,4 +30,15 @@ export interface PPOHyperParameters extends OnPolicyHyperParams {
     normalizeadvantage: boolean;
     batchSize: number;
     nEpochs: number;
+}
+
+export interface BaseModelParams {
+    lr: number;
+    activation: ActivationType;
+    optim?: tf.Optimizer;
+}
+
+export interface ActorCriticParams extends BaseModelParams {
+    policyNet: number[];
+    valueNet: number[];
 }

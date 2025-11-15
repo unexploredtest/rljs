@@ -10,7 +10,6 @@ export abstract class BaseAlgorithm {
     public env: gym.Env | gym.Wrapper;
     protected observationSpace: spaces.Space;
     protected actionSpace: spaces.Space;
-    protected lr: number;
     protected numTimesteps: number;
     protected policy: BasePolicy | null;
     protected lastObs: tf.Tensor | null;
@@ -19,7 +18,6 @@ export abstract class BaseAlgorithm {
         this.env = env;
         this.observationSpace = env.observationSpace;
         this.actionSpace = env.actionSpace;
-        this.lr = hyperParams.lr;
         this.lastEpisodeStarts = null;
         this.policy = null;
 

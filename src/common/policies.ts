@@ -3,18 +3,25 @@ import * as spaces from 'gymjs/spaces'
 
 import { CategoricalDistribution } from './distributions.js';
 import { Distribution } from './distributions.js';
-
-type Optimizer = "adam" | "SGD";
+import { BaseModelParams, ActorCriticParams, ActivationType } from './type_aliases.js';
 
 export abstract class baseModel {
-    protected optimizer: Optimizer;
     protected observationSpace: spaces.Space;
     protected actionSpace: spaces.Space;
+    public activation: ActivationType;
+    public optim: tf.Optimizer;
+    public lr: number;
 
-    constructor(optimizer: Optimizer, observationSpace: spaces.Space, actionSpace: spaces.Space) {
-        this.optimizer = optimizer;
+    constructor(observationSpace: spaces.Space, actionSpace: spaces.Space, modelParams: BaseModelParams) {
         this.observationSpace = observationSpace;
         this.actionSpace = actionSpace;
+        this.lr = modelParams.lr;
+        this.activation = modelParams.activation;
+        if(modelParams.optim !== undefined) {
+            this.optim = modelParams.optim;
+        } else {
+            this.optim = tf.train.adam(this.lr);
+        }
     }
 }
 
@@ -24,25 +31,21 @@ export abstract class BasePolicy extends baseModel {
 
 export class ActorCriticPolicy extends BasePolicy {
     private actionDist: Distribution;
-    public lr: number;
-    public optim: tf.Optimizer;
+    
     public policyModel: tf.LayersModel;
     public valueModel: tf.LayersModel;
 
-    constructor(optimizer: Optimizer, observationSpace: spaces.Space, actionSpace: spaces.Space, lr: number, policyNet: number[], valueNet: number[]) {
-        super(optimizer, observationSpace, actionSpace);
-        this.lr = lr;
+    constructor(observationSpace: spaces.Space, actionSpace: spaces.Space, modelParams: ActorCriticParams) {
+        super(observationSpace, actionSpace, modelParams);
+        this.lr = modelParams.lr;
         if(actionSpace instanceof spaces.Discrete) {
             this.actionDist = new CategoricalDistribution((actionSpace as spaces.Discrete).n);
         } else {
             throw new Error("Not supported!");
         }
 
-        this.optim = tf.train.adam(lr);
-
-        const inputSize = this.observationSpace.shape;
-        this.policyModel = this.createActor(policyNet);
-        this.valueModel = this.createCritic(valueNet);
+        this.policyModel = this.createActor(modelParams.policyNet);
+        this.valueModel = this.createCritic(modelParams.valueNet);
     }
 
     forward(obs: tf.Tensor, deterministic: boolean): [tf.Tensor, tf.Tensor, tf.Tensor] {

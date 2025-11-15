@@ -6,6 +6,7 @@ import { BaseAlgorithm } from './base_algorithm.js';
 import { RolloutBuffer } from './buffers.js';
 import { ActorCriticPolicy } from './policies.js';
 import { OnPolicyHyperParams } from './type_aliases.js';
+import { ActorCriticParams } from './type_aliases.js';
 
 
 export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
@@ -18,7 +19,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
     protected maxGradNorm: number;
     protected policy: ActorCriticPolicy;
 
-    constructor(env: gym.Env | gym.Wrapper, hyperParams: OnPolicyHyperParams, policyNet: number[], valueNet: number[]) {
+    constructor(env: gym.Env | gym.Wrapper, hyperParams: OnPolicyHyperParams, policyParams: ActorCriticParams) {
         super(env, hyperParams);
         this.nSteps = hyperParams.nSteps;
         this.gamma = hyperParams.gamma;
@@ -26,7 +27,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         this.entCoef = hyperParams.entCoef;
         this.vfCoef = hyperParams.vfCoef;
         this.maxGradNorm = hyperParams.maxGradNorm;
-        this.policy = new ActorCriticPolicy("adam", this.observationSpace, this.actionSpace, this.lr, policyNet, valueNet);
+        this.policy = new ActorCriticPolicy(this.observationSpace, this.actionSpace, policyParams);
 
         this.buffer = new RolloutBuffer(this.nSteps, this.observationSpace, this.actionSpace, this.gaeLmbda, this.gamma);
     }

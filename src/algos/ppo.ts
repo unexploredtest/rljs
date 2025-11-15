@@ -4,10 +4,9 @@ import * as spaces from 'gymjs/spaces';
 
 import { OnPolicyAlgorithm } from '../common/on_policy_algorithm.js';
 import { clipGradNorm } from '../common/utils.js';
-import { PPOHyperParameters } from '../common/type_aliases.js';
+import { PPOHyperParameters, ActorCriticParams } from '../common/type_aliases.js';
 
 const DEFAULT_HYPER_PARAMETERS: PPOHyperParameters = {
-    lr: 3e-4,
     nSteps: 2048,
     gamma: 0.99,
     gaeLmbda: 0.95,
@@ -20,15 +19,25 @@ const DEFAULT_HYPER_PARAMETERS: PPOHyperParameters = {
     nEpochs: 10
 }
 
+const DEFAULT_POLICY_PARAMETERS: ActorCriticParams = {
+    lr: 3e-4,
+    activation: "relu",
+    optim: undefined,
+    policyNet: [64, 64],
+    valueNet: [64, 64]
+}
+
+
 
 export class PPO extends OnPolicyAlgorithm {
     private clipRange: number;
     private batchSize: number;
     private nEpochs: number;
     private normalizeadvantage: boolean;
-    constructor(env: gym.Env | gym.Wrapper, hyperParameters: Partial<PPOHyperParameters> = {}, policyNet: number[] = [64, 64], valueNet: number[] = [64, 64]) {
+    constructor(env: gym.Env | gym.Wrapper, hyperParameters: Partial<PPOHyperParameters> = {}, policyParameters: Partial<ActorCriticParams> = {}) {
         const fHyperParameters = Object.assign({}, DEFAULT_HYPER_PARAMETERS, hyperParameters) as PPOHyperParameters;
-        super(env, fHyperParameters, policyNet, valueNet);
+        const fPolicyParameters = Object.assign({}, DEFAULT_POLICY_PARAMETERS, policyParameters) as ActorCriticParams;
+        super(env, fHyperParameters, fPolicyParameters);
         this.clipRange = fHyperParameters.clipRange;
         this.normalizeadvantage = fHyperParameters.normalizeadvantage;
         this.batchSize = fHyperParameters.batchSize;
@@ -54,7 +63,8 @@ export class PPO extends OnPolicyAlgorithm {
                 if(this.normalizeadvantage && advantages.size > 1) {
                     advantages = tf.tidy(() => {
                         const {mean, variance} = tf.moments(advantages); 
-                        return (advantages.sub(mean)).div(variance.add(tf.scalar(1e-8)));
+                        const std = variance.sqrt();
+                        return (advantages.sub(mean)).div(std.add(tf.scalar(1e-8)));
                     })
                 }
 
