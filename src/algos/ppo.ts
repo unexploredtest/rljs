@@ -52,8 +52,10 @@ export class PPO extends OnPolicyAlgorithm {
                 let [observations, actions, oldValues, oldLogProb, advantages, returns] = batch;
 
                 if(this.normalizeadvantage && advantages.size > 1) {
-                    const {mean, variance} = tf.moments(advantages); 
-                    advantages = (advantages.sub(mean)).div(variance.add(tf.scalar(1e-8)))
+                    advantages = tf.tidy(() => {
+                        const {mean, variance} = tf.moments(advantages); 
+                        return (advantages.sub(mean)).div(variance.add(tf.scalar(1e-8)));
+                    })
                 }
 
                 const optFunc = () => {
