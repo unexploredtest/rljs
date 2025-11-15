@@ -2,7 +2,8 @@ import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 import * as spaces from 'gymjs/spaces';
 
-import { OnPolicyAlgorithm } from '../common/on_policy_algorithm';
+import { OnPolicyAlgorithm } from '../common/on_policy_algorithm.js';
+import { clipGradNorm } from '../common/utils.js';
 
 
 export class PPO extends OnPolicyAlgorithm {
@@ -50,21 +51,8 @@ export class PPO extends OnPolicyAlgorithm {
 
                 tf.tidy(() => {                 
                     const result = this.policy.optim.computeGradients(optFunc);
-                    // https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html
-                    let normedGrad: tf.NamedTensorMap = {};
-                    for (const key in result.grads) {
-                        let tensorGrad = result.grads[key];
-                        let totalNorm = tf.norm(tensorGrad);
-                        let clipCoef = tf.scalar(this.maxGradNorm).div(totalNorm.add(tf.scalar(1e-6)))
-                        let clipCoefClamped = tf.clipByValue(clipCoef, 0, 1);
-                        normedGrad[key] = tensorGrad.mul(clipCoefClamped);
-                        // tf.dispose([tensorGrad, totalNorm, clipCoef, clipCoefClamped]);
-                    }
-                    
+                    let normedGrad: tf.NamedTensorMap = clipGradNorm(result.grads, this.maxGradNorm);                    
                     this.policy.optim.applyGradients(normedGrad);
-                    // tf.dispose(batch);
-                    // tf.dispose(result);
-                    // tf.dispose(normedGrad);
                 })
                 tf.dispose(batch);
             }
