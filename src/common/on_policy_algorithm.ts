@@ -2,8 +2,9 @@ import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 import * as spaces from 'gymjs/spaces';
 
-import { BaseAlgorithm } from './base_algorithm';
-import { RolloutBuffer } from './buffers';
+import { BaseAlgorithm } from './base_algorithm.js';
+import { RolloutBuffer } from './buffers.js';
+import { ActorCriticPolicy } from './policies.js';
 
 
 export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
@@ -14,8 +15,9 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
     protected entCoef: number;
     protected vfCoef: number;
     protected maxGradNorm: number;
+    protected policy: ActorCriticPolicy;
 
-    constructor(env: gym.Env | gym.Wrapper, lr: number, nSteps: number, gamma: number, gaeLmbda: number, entCoef: number, vfCoef: number, maxGradNorm: number) {
+    constructor(env: gym.Env | gym.Wrapper, lr: number, nSteps: number, gamma: number, gaeLmbda: number, entCoef: number, vfCoef: number, maxGradNorm: number, policyNet: number[], valueNet: number[]) {
         super(env, lr);
         this.nSteps = nSteps;
         this.gamma = gamma;
@@ -23,6 +25,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         this.entCoef = entCoef;
         this.vfCoef = vfCoef;
         this.maxGradNorm = maxGradNorm;
+        this.policy = new ActorCriticPolicy("adam", this.observationSpace, this.actionSpace, lr, policyNet, valueNet);
 
         this.buffer = new RolloutBuffer(nSteps, this.observationSpace, this.actionSpace, gaeLmbda, gamma);
     }

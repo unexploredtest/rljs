@@ -12,9 +12,9 @@ export class PPO extends OnPolicyAlgorithm {
     private nEpochs: number;
     constructor(env: gym.Env | gym.Wrapper,
         lr: number = 3e-4, nSteps: number = 2048, gamma: number = 0.99, gaeLmbda: number = 0.95,
-        entCoef: number = 0.2, vfCoef: number = 0.5, maxGradNorm: number = 0.5, clipRange: number = 0.2,
+        entCoef: number = 0.2, vfCoef: number = 0.5, maxGradNorm: number = 0.5, policyNet: number[] = [64], valueNet: number[] = [64], clipRange: number = 0.2,
         batchSize: number = 64, nEpochs: number = 10) {
-        super(env, lr, nSteps, gamma, gaeLmbda, entCoef, vfCoef, maxGradNorm);
+        super(env, lr, nSteps, gamma, gaeLmbda, entCoef, vfCoef, maxGradNorm, policyNet, valueNet);
 
         this.clipRange = clipRange;
         this.batchSize = batchSize;

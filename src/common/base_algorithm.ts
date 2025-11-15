@@ -2,7 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 import * as spaces from 'gymjs/spaces'
 
-import { BasePolicy, ActorCriticPolicy } from './policies';
+import { BasePolicy, ActorCriticPolicy } from './policies.js';
 
 
 export abstract class BaseAlgorithm {
@@ -11,7 +11,7 @@ export abstract class BaseAlgorithm {
     protected actionSpace: spaces.Space;
     protected lr: number;
     protected numTimesteps: number;
-    protected policy: ActorCriticPolicy;
+    protected policy: BasePolicy | null;
     protected lastObs: tf.Tensor | null;
     protected lastEpisodeStarts: tf.Tensor| null;
     constructor(env: gym.Env | gym.Wrapper, lr: number) {
@@ -20,10 +20,9 @@ export abstract class BaseAlgorithm {
         this.actionSpace = env.actionSpace;
         this.lr = lr;
         this.lastEpisodeStarts = null;
+        this.policy = null;
 
         this.lastObs = null;
-
-        this.policy = new ActorCriticPolicy("adam", this.observationSpace, this.actionSpace, lr);
 
         this.numTimesteps = 0;
     }
@@ -44,6 +43,9 @@ export abstract class BaseAlgorithm {
     abstract learn(totalTimesteps: number): void;
 
     predict(obs: tf.Tensor, deterministic: boolean) {
+        if(this.policy === null) {
+            throw new Error("Policy not defined!");
+        }
         return this.policy.predict(obs, deterministic);
     }
 
