@@ -5,6 +5,7 @@ import * as spaces from 'gymjs/spaces';
 import { BaseAlgorithm } from './base_algorithm.js';
 import { RolloutBuffer } from './buffers.js';
 import { ActorCriticPolicy } from './policies.js';
+import { OnPolicyHyperParams } from './type_aliases.js';
 
 
 export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
@@ -17,17 +18,17 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
     protected maxGradNorm: number;
     protected policy: ActorCriticPolicy;
 
-    constructor(env: gym.Env | gym.Wrapper, lr: number, nSteps: number, gamma: number, gaeLmbda: number, entCoef: number, vfCoef: number, maxGradNorm: number, policyNet: number[], valueNet: number[]) {
-        super(env, lr);
-        this.nSteps = nSteps;
-        this.gamma = gamma;
-        this.gaeLmbda = gaeLmbda;
-        this.entCoef = entCoef;
-        this.vfCoef = vfCoef;
-        this.maxGradNorm = maxGradNorm;
-        this.policy = new ActorCriticPolicy("adam", this.observationSpace, this.actionSpace, lr, policyNet, valueNet);
+    constructor(env: gym.Env | gym.Wrapper, hyperParams: OnPolicyHyperParams, policyNet: number[], valueNet: number[]) {
+        super(env, hyperParams);
+        this.nSteps = hyperParams.nSteps;
+        this.gamma = hyperParams.gamma;
+        this.gaeLmbda = hyperParams.gaeLmbda;
+        this.entCoef = hyperParams.entCoef;
+        this.vfCoef = hyperParams.vfCoef;
+        this.maxGradNorm = hyperParams.maxGradNorm;
+        this.policy = new ActorCriticPolicy("adam", this.observationSpace, this.actionSpace, this.lr, policyNet, valueNet);
 
-        this.buffer = new RolloutBuffer(nSteps, this.observationSpace, this.actionSpace, gaeLmbda, gamma);
+        this.buffer = new RolloutBuffer(this.nSteps, this.observationSpace, this.actionSpace, this.gaeLmbda, this.gamma);
     }
 
     setupModel(): void {

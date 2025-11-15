@@ -3,6 +3,7 @@ import * as gym from 'gymjs';
 import * as spaces from 'gymjs/spaces'
 
 import { BasePolicy, ActorCriticPolicy } from './policies.js';
+import { BaseHyperParams } from './type_aliases.js';
 
 
 export abstract class BaseAlgorithm {
@@ -14,11 +15,11 @@ export abstract class BaseAlgorithm {
     protected policy: BasePolicy | null;
     protected lastObs: tf.Tensor | null;
     protected lastEpisodeStarts: tf.Tensor| null;
-    constructor(env: gym.Env | gym.Wrapper, lr: number) {
+    constructor(env: gym.Env | gym.Wrapper, hyperParams: BaseHyperParams) {
         this.env = env;
         this.observationSpace = env.observationSpace;
         this.actionSpace = env.actionSpace;
-        this.lr = lr;
+        this.lr = hyperParams.lr;
         this.lastEpisodeStarts = null;
         this.policy = null;
 

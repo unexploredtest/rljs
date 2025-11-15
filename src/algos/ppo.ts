@@ -4,21 +4,37 @@ import * as spaces from 'gymjs/spaces';
 
 import { OnPolicyAlgorithm } from '../common/on_policy_algorithm.js';
 import { clipGradNorm } from '../common/utils.js';
+import { PPOHyperParameters } from '../common/type_aliases.js';
+
+const DEFAULT_HYPER_PARAMETERS: PPOHyperParameters = {
+    lr: 3e-4,
+    nSteps: 2048,
+    gamma: 0.99,
+    gaeLmbda: 0.95,
+    entCoef: 0.2,
+    vfCoef: 0.5,
+    maxGradNorm: 0.5,
+    clipRange: 0.2,
+    batchSize: 64,
+    nEpochs: 10
+}
+
+// constructor(env: gym.Env | gym.Wrapper,
+//     lr: number = 3e-4, nSteps: number = 2048, gamma: number = 0.99, gaeLmbda: number = 0.95,
+//     entCoef: number = 0.2, vfCoef: number = 0.5, maxGradNorm: number = 0.5, policyNet: number[] = [64, 64], valueNet: number[] = [64, 64], clipRange: number = 0.2,
+//     batchSize: number = 64, nEpochs: number = 10) {
 
 
 export class PPO extends OnPolicyAlgorithm {
     private clipRange: number;
     private batchSize: number;
     private nEpochs: number;
-    constructor(env: gym.Env | gym.Wrapper,
-        lr: number = 3e-4, nSteps: number = 2048, gamma: number = 0.99, gaeLmbda: number = 0.95,
-        entCoef: number = 0.2, vfCoef: number = 0.5, maxGradNorm: number = 0.5, policyNet: number[] = [64], valueNet: number[] = [64], clipRange: number = 0.2,
-        batchSize: number = 64, nEpochs: number = 10) {
-        super(env, lr, nSteps, gamma, gaeLmbda, entCoef, vfCoef, maxGradNorm, policyNet, valueNet);
-
-        this.clipRange = clipRange;
-        this.batchSize = batchSize;
-        this.nEpochs = nEpochs;
+    constructor(env: gym.Env | gym.Wrapper, hyperParameters: Partial<PPOHyperParameters> = {}, policyNet: number[] = [64, 64], valueNet: number[] = [64, 64]) {
+        const fHyperParameters = Object.assign({}, DEFAULT_HYPER_PARAMETERS, hyperParameters) as PPOHyperParameters;
+        super(env, fHyperParameters, policyNet, valueNet);
+        this.clipRange = fHyperParameters.clipRange;
+        this.batchSize = fHyperParameters.batchSize;
+        this.nEpochs = fHyperParameters.nEpochs;
     }
 
     async train(): Promise<void> {
