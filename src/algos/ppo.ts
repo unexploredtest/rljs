@@ -15,26 +15,28 @@ const DEFAULT_HYPER_PARAMETERS: PPOHyperParameters = {
     vfCoef: 0.5,
     maxGradNorm: 0.5,
     clipRange: 0.2,
+    normalizeadvantage: false,
     batchSize: 64,
     nEpochs: 10
 }
-
-// constructor(env: gym.Env | gym.Wrapper,
-//     lr: number = 3e-4, nSteps: number = 2048, gamma: number = 0.99, gaeLmbda: number = 0.95,
-//     entCoef: number = 0.2, vfCoef: number = 0.5, maxGradNorm: number = 0.5, policyNet: number[] = [64, 64], valueNet: number[] = [64, 64], clipRange: number = 0.2,
-//     batchSize: number = 64, nEpochs: number = 10) {
 
 
 export class PPO extends OnPolicyAlgorithm {
     private clipRange: number;
     private batchSize: number;
     private nEpochs: number;
+    private normalizeadvantage: boolean;
     constructor(env: gym.Env | gym.Wrapper, hyperParameters: Partial<PPOHyperParameters> = {}, policyNet: number[] = [64, 64], valueNet: number[] = [64, 64]) {
         const fHyperParameters = Object.assign({}, DEFAULT_HYPER_PARAMETERS, hyperParameters) as PPOHyperParameters;
         super(env, fHyperParameters, policyNet, valueNet);
         this.clipRange = fHyperParameters.clipRange;
+        this.normalizeadvantage = fHyperParameters.normalizeadvantage;
         this.batchSize = fHyperParameters.batchSize;
         this.nEpochs = fHyperParameters.nEpochs;
+
+        if(this.normalizeadvantage && this.batchSize === 1) {
+            throw new Error("Batch size must be greater than 1");
+        }
     }
 
     async train(): Promise<void> {
@@ -48,6 +50,11 @@ export class PPO extends OnPolicyAlgorithm {
 
             for (let batch of this.buffer.get(this.batchSize)) {
                 let [observations, actions, oldValues, oldLogProb, advantages, returns] = batch;
+
+                if(this.normalizeadvantage && advantages.size > 1) {
+                    const {mean, variance} = tf.moments(advantages); 
+                    advantages = (advantages.sub(mean)).div(variance.add(tf.scalar(1e-8)))
+                }
 
                 const optFunc = () => {
                     let [values, logProb, entropy] = this.policy.evaluateActions(observations, actions);

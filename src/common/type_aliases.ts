@@ -24,6 +24,7 @@ export interface OnPolicyHyperParams extends BaseHyperParams {
 
 export interface PPOHyperParameters extends OnPolicyHyperParams {
     clipRange: number;
+    normalizeadvantage: boolean;
     batchSize: number;
     nEpochs: number;
 }
