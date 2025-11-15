@@ -2,7 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 import * as spaces from 'gymjs/spaces'
 
-import { BasePolicy, ActorCriticPolicy } from './policies.js';
+import { BasePolicy, ActorCriticPolicy } from './policies';
 
 
 export abstract class BaseAlgorithm {

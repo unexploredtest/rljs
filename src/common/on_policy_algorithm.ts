@@ -2,8 +2,8 @@ import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 import * as spaces from 'gymjs/spaces';
 
-import { BaseAlgorithm } from './base_algorithm.js';
-import { RolloutBuffer } from './buffers.js';
+import { BaseAlgorithm } from './base_algorithm';
+import { RolloutBuffer } from './buffers';
 
 
 export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
@@ -69,7 +69,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
                 k = 0;
                 i++;
             }
-            // tf.dispose(actions);
+            tf.dispose(actions);
             // tf.dispose(values);
             // tf.dispose(logProbs);
             // tf.dispose(obs);
@@ -79,6 +79,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
 
         const values = this.policy.predictValues(this.lastObs);
         this.buffer.computeReturnsAndAdvantages(values, this.lastEpisodeStarts);
+        tf.dispose(values);
 
         return true;
     }
@@ -87,10 +88,12 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         totalTimesteps = this.setupLearn(totalTimesteps);
 
         while(this.numTimesteps < totalTimesteps) {
+            console.time("exampleFunctionTime");
             let continueTraining = await this.collectRollouts();
-
+            
             await this.train();
             console.log("Now: " + this.numTimesteps);
+            console.timeEnd("exampleFunctionTime");
         }
     }
 

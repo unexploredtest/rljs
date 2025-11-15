@@ -1,8 +1,8 @@
 import * as tf from '@tensorflow/tfjs';
 import * as spaces from 'gymjs/spaces'
 
-import { CategoricalDistribution } from './distributions.js';
-import { Distribution } from './distributions.js';
+import { CategoricalDistribution } from './distributions';
+import { Distribution } from './distributions';
 
 type Optimizer = "adam" | "SGD";
 
@@ -56,48 +56,58 @@ export class ActorCriticPolicy extends BasePolicy {
     }
 
     forward(obs: tf.Tensor, deterministic: boolean): [tf.Tensor, tf.Tensor, tf.Tensor] {
-        if(obs.shape.length === 1) {
-            obs = obs.reshape([-1, ...obs.shape])
-        }
-        let values = this.valueModel.predict(obs) as tf.Tensor; 
-        let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
-        this.actionDist.probaDistribution(actionLogits);
-        let actions = this.actionDist.getActions(deterministic);
-        let logProb = this.actionDist.logProb(actions);
+        return tf.tidy(() => { 
+            if(obs.shape.length === 1) {
+                obs = obs.reshape([-1, ...obs.shape])
+            }
+            // obs.print();
+            let values = this.valueModel.predict(obs) as tf.Tensor; 
+            let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
+            // actionLogits.print()
+            this.actionDist.probaDistribution(actionLogits);
+            let actions = this.actionDist.getActions(deterministic);
+            let logProb = this.actionDist.logProb(actions);
 
-        return [actions, values, logProb];
+            return [actions, values, logProb];
+        })
     }
 
     predict(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
-        if(obs.shape.length === 1) {
-            obs = obs.reshape([-1, ...obs.shape])
-        }
-        let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
-        this.actionDist.probaDistribution(actionLogits);
-        let actions = this.actionDist.getActions(deterministic);
+        return tf.tidy(() => { 
+            if(obs.shape.length === 1) {
+                obs = obs.reshape([-1, ...obs.shape])
+            }
+            let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
+            this.actionDist.probaDistribution(actionLogits);
+            let actions = this.actionDist.getActions(deterministic);
 
-        return actions;
+            return actions;
+        })
     }
 
     predictValues(obs: tf.Tensor): tf.Tensor {
-        if(obs.shape.length === 1) {
-            obs = obs.reshape([-1, ...obs.shape])
-        }
-        let values = this.valueModel.predict(obs) as tf.Tensor;
-        return values;
+        return tf.tidy(() => { 
+            if(obs.shape.length === 1) {
+                obs = obs.reshape([-1, ...obs.shape])
+            }
+            let values = this.valueModel.predict(obs) as tf.Tensor;
+            return values;
+        })
     }
 
     evaluateActions(obs: tf.Tensor, actions: tf.Tensor) {
-        if(obs.shape.length === 1) {
-            obs = obs.reshape([-1, ...obs.shape])
-        }
-        let values = this.valueModel.predict(obs) as tf.Tensor; 
-        let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
-        this.actionDist.probaDistribution(actionLogits);
-        let logProb = this.actionDist.logProb(actions);
-        let entropy = this.actionDist.entropy();
+        return tf.tidy(() => { 
+            if(obs.shape.length === 1) {
+                obs = obs.reshape([-1, ...obs.shape])
+            }
+            let values = this.valueModel.predict(obs) as tf.Tensor; 
+            let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
+            this.actionDist.probaDistribution(actionLogits);
+            let logProb = this.actionDist.logProb(actions);
+            let entropy = this.actionDist.entropy();
 
-        return [values, logProb, entropy];
+            return [values, logProb, entropy];
+        })
     }
 }
 

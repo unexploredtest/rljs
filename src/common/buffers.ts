@@ -2,7 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 import * as spaces from 'gymjs/spaces'
 
-import { RolloutBufferSamples } from './type_aliases.js';
+import { RolloutBufferSamples } from './type_aliases';
 
 abstract class BaseBuffer {
     protected bufferSize: number;
@@ -134,6 +134,7 @@ export class RolloutBuffer extends BaseBuffer {
 
             yield this.getSamples(indices.gather(tf.range(startIdx, endIndex, 1, "int32")));
         }
+        tf.dispose(indices);
     }
 
     protected getSamples(indices: tf.Tensor): RolloutBufferSamples {
@@ -184,9 +185,9 @@ export class RolloutBuffer extends BaseBuffer {
             let delta = this.rewards[step].add(tf.scalar(this.gamma).mul(nextValues).mul(nextNonTerminal)).sub(this.values[step]);
             lastGaeLam = delta.add(tf.scalar(this.gamma * this.gaeLambda).mul(nextNonTerminal).mul(lastGaeLam))
             this.advantages[step] = lastGaeLam;
-            // tf.dispose(nextNonTerminal);
+            tf.dispose(nextNonTerminal);
             // tf.dispose(nextValues);
-            // tf.dispose(delta);
+            tf.dispose(delta);
         }
         // tf.dispose(lastGaeLam);
         this.returns = tf.stack(this.advantages).add(tf.stack(this.values)).reshape([this.pos]);
