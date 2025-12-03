@@ -105,11 +105,11 @@ export class PPO extends OnPolicyAlgorithm {
                     }
                 })
 
+                tf.dispose(batch);
+
                 if(!continueTraining) {
                     break;
                 }
-
-                tf.dispose(batch);
             }
 
             if(!continueTraining) {
