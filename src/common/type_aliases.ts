@@ -30,6 +30,7 @@ export interface PPOHyperParameters extends OnPolicyHyperParams {
     normalizeadvantage: boolean;
     batchSize: number;
     nEpochs: number;
+    target_kl?: number;
 }
 
 export interface BaseModelParams {

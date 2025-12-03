@@ -34,6 +34,8 @@ export class PPO extends OnPolicyAlgorithm {
     private batchSize: number;
     private nEpochs: number;
     private normalizeadvantage: boolean;
+    private target_kl: number | undefined;
+
     constructor(env: gym.Env | gym.Wrapper, hyperParameters: Partial<PPOHyperParameters> = {}, policyParameters: Partial<ActorCriticParams> = {}) {
         const fHyperParameters = Object.assign({}, DEFAULT_HYPER_PARAMETERS, hyperParameters) as PPOHyperParameters;
         const fPolicyParameters = Object.assign({}, DEFAULT_POLICY_PARAMETERS, policyParameters) as ActorCriticParams;
@@ -42,6 +44,7 @@ export class PPO extends OnPolicyAlgorithm {
         this.normalizeadvantage = fHyperParameters.normalizeadvantage;
         this.batchSize = fHyperParameters.batchSize;
         this.nEpochs = fHyperParameters.nEpochs;
+        this.target_kl = fHyperParameters.target_kl;
 
         if(this.normalizeadvantage && this.batchSize === 1) {
             throw new Error("Batch size must be greater than 1");
@@ -56,6 +59,7 @@ export class PPO extends OnPolicyAlgorithm {
 
         for(let i = 0; i < this.nEpochs; i++) {
             let approxKlDivs: tf.Tensor[] = [];
+            let continueTraining = true;
 
             for (let batch of this.buffer.get(this.batchSize)) {
                 let [observations, actions, oldValues, oldLogProb, advantages, returns] = batch;
@@ -67,6 +71,8 @@ export class PPO extends OnPolicyAlgorithm {
                         return (advantages.sub(mean)).div(std.add(tf.scalar(1e-8)));
                     })
                 }
+
+                let approxKlDiv: number;
 
                 const optFunc = () => {
                     let [values, logProb, entropy] = this.policy.evaluateActions(observations, actions);
@@ -81,6 +87,11 @@ export class PPO extends OnPolicyAlgorithm {
                     let entropyLoss = tf.neg(entropy.mean()).mul(tf.scalar(this.entCoef));
 
                     let loss = policyLoss.add(entropyLoss).add(valueLoss);
+
+                    const logRatio = logProb.sub(oldLogProb);
+                    const approxKlDivScalar = tf.mean((tf.exp(logRatio).sub(tf.scalar(1)).sub(logRatio)));
+                    approxKlDiv = approxKlDivScalar.asScalar().dataSync()[0];
+
                     return loss.asScalar();
                 }
 
@@ -88,8 +99,21 @@ export class PPO extends OnPolicyAlgorithm {
                     const result = this.policy.optim.computeGradients(optFunc);
                     let normedGrad: tf.NamedTensorMap = clipGradNorm(result.grads, this.maxGradNorm);                    
                     this.policy.optim.applyGradients(normedGrad);
+
+                    if(this.target_kl !== undefined && approxKlDiv > 1.5 * this.target_kl) {
+                        continueTraining = false;
+                    }
                 })
+
+                if(!continueTraining) {
+                    break;
+                }
+
                 tf.dispose(batch);
+            }
+
+            if(!continueTraining) {
+                break;
             }
         }
     }
