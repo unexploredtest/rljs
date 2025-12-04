@@ -52,13 +52,13 @@ export class PPO extends OnPolicyAlgorithm {
     }
 
     async train(): Promise<void> {
-        let entropyLosses: tf.Tensor[] = [];
-        let pgLosses: tf.Tensor[] = [];
-        let valueLosses: tf.Tensor[] = [];
-        let clipFractions: tf.Tensor[] = [];
+        let entropyLosses: number[] = [];
+        let pgLosses: number[] = [];
+        let valueLosses: number[] = [];
+        let clipFractions: number[] = [];
 
         for(let i = 0; i < this.nEpochs; i++) {
-            let approxKlDivs: tf.Tensor[] = [];
+            let approxKlDivs: number[] = [];
             let continueTraining = true;
 
             for (let batch of this.buffer.get(this.batchSize)) {
@@ -81,16 +81,23 @@ export class PPO extends OnPolicyAlgorithm {
                     let policyLoss1 = advantages.mul(ratio);
                     let policyLoss2 = advantages.mul(tf.clipByValue(ratio, 1 - this.clipRange, 1 + this.clipRange));
                     let policyLoss = tf.neg(tf.minimum(policyLoss1, policyLoss2)).mean();
+                    pgLosses.push(policyLoss.asScalar().dataSync()[0])
+
+                    const clipFraction = tf.mean(tf.scalar(this.clipRange).less((tf.abs(ratio.sub(tf.scalar(1)))).toFloat()));
+                    clipFractions.push(clipFraction.asScalar().dataSync()[0]);
 
                     let valueLoss = (returns.sub(values)).square().mean().mul(this.vfCoef);
+                    valueLosses.push(valueLoss.asScalar().dataSync()[0])
 
                     let entropyLoss = tf.neg(entropy.mean()).mul(tf.scalar(this.entCoef));
+                    entropyLosses.push(entropyLoss.asScalar().dataSync()[0])
 
                     let loss = policyLoss.add(entropyLoss).add(valueLoss);
 
                     const logRatio = logProb.sub(oldLogProb);
                     const approxKlDivScalar = tf.mean((tf.exp(logRatio).sub(tf.scalar(1)).sub(logRatio)));
                     approxKlDiv = approxKlDivScalar.asScalar().dataSync()[0];
+                    approxKlDivs.push(approxKlDiv);
 
                     return loss.asScalar();
                 }
