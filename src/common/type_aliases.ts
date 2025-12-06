@@ -42,4 +42,5 @@ export interface BaseModelParams {
 export interface ActorCriticParams extends BaseModelParams {
     policyNet: number[];
     valueNet: number[];
+    logStdInit: number;
 }

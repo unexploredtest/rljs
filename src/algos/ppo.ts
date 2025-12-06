@@ -24,7 +24,8 @@ const DEFAULT_POLICY_PARAMETERS: ActorCriticParams = {
     activation: "relu",
     optim: undefined,
     policyNet: [64, 64],
-    valueNet: [64, 64]
+    valueNet: [64, 64],
+    logStdInit: 1.0
 }
 
 

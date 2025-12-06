@@ -53,28 +53,36 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         while(curNSteps < this.nSteps) {
             k++;
             let [actions, values, logProbs] = this.policy.forward(this.lastObs, false);
-            let actionData = await actions.asScalar().data();
-            let action = actionData[0];
+            let action: tf.Tensor | number;
+            if (this.actionSpace instanceof spaces.Discrete) {
+                const actionData = await actions.asScalar().data();
+                action = actionData[0];
+            } else if(this.actionSpace instanceof spaces.Box) {
+                action = actions.clipByValue(-2, 2);
+            } else {
+                throw new Error('Unknown action space');
+            }
+
             let [obs, reward, done, truncated, info] = await this.env.step(action);
 
             this.numTimesteps++;
             curNSteps++;
 
-            this.buffer.add(this.lastObs, tf.tensor([action], [1], "int32"), tf.tensor([reward]), this.lastEpisodeStarts, values, logProbs);
+            this.buffer.add(this.lastObs, actions, tf.tensor([reward]), this.lastEpisodeStarts, values, logProbs);
 
             // tf.dispose(this.lastObs);
             this.lastObs = obs;
             // tf.dispose(this.lastEpisodeStarts);
-            this.lastEpisodeStarts = tf.tensor([done], [1], "float32");
+            this.lastEpisodeStarts = tf.tensor([done || truncated], [1], "float32");
 
-            if(done === true) {
+            if(done === true || truncated === true) {
                 avg += k;
                 let [obs2, info2] = this.env.reset();
                 this.lastObs = obs2;
                 k = 0;
                 i++;
             }
-            tf.dispose(actions);
+            // tf.dispose(actions);
             // tf.dispose(values);
             // tf.dispose(logProbs);
             // tf.dispose(obs);

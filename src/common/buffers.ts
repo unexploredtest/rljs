@@ -2,7 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 import * as spaces from 'gymjs/spaces'
 
-import { RolloutBufferSamples } from './type_aliases';
+import { RolloutBufferSamples } from './type_aliases.js';
 
 abstract class BaseBuffer {
     protected bufferSize: number;

@@ -1,8 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 import * as spaces from 'gymjs/spaces'
 
-import { CategoricalDistribution } from './distributions.js';
-import { Distribution } from './distributions.js';
+import { Distribution, CategoricalDistribution, DiagGaussianDistribution } from './distributions.js';
 import { BaseModelParams, ActorCriticParams, ActivationType } from './type_aliases.js';
 
 export abstract class baseModel {
@@ -19,6 +18,9 @@ export abstract class baseModel {
         this.activation = modelParams.activation;
         if(modelParams.optim !== undefined) {
             this.optim = modelParams.optim;
+            // this.optim.getConfig();
+            // tf.Optimizer.fromConfig(tf.AdamOptimizer, this.optim.getConfig())
+
         } else {
             this.optim = tf.train.adam(this.lr);
         }
@@ -30,16 +32,22 @@ export abstract class BasePolicy extends baseModel {
 }
 
 export class ActorCriticPolicy extends BasePolicy {
-    private actionDist: Distribution;
-    
     public policyModel: tf.LayersModel;
     public valueModel: tf.LayersModel;
+
+    private actionDist: Distribution;
+    private logStdInit: number;
 
     constructor(observationSpace: spaces.Space, actionSpace: spaces.Space, modelParams: ActorCriticParams) {
         super(observationSpace, actionSpace, modelParams);
         this.lr = modelParams.lr;
+        this.logStdInit = modelParams.logStdInit;
         if(actionSpace instanceof spaces.Discrete) {
-            this.actionDist = new CategoricalDistribution((actionSpace as spaces.Discrete).n);
+            this.actionDist = new CategoricalDistribution(actionSpace.n);
+        } else if(this.actionSpace instanceof spaces.Box) {
+            const size = actionSpace.shape.reduce((accumulator, currentValue) => accumulator * currentValue, 1);
+            this.actionDist = new DiagGaussianDistribution(size, this.logStdInit);
+            (this.actionDist as DiagGaussianDistribution).makeLogStd();
         } else {
             throw new Error("Not supported!");
         }
@@ -58,6 +66,12 @@ export class ActorCriticPolicy extends BasePolicy {
             let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
             // actionLogits.print()
             this.actionDist.probaDistribution(actionLogits);
+            // if(this.actionDist instanceof CategoricalDistribution) {
+            //     this.actionDist.probaDistribution(actionLogits);
+            // } else if(this.actionDist instanceof DiagGaussianDistribution) {
+            //     this.actionDist.probaDistribution(actionLogits);
+            // }
+            
             let actions = this.actionDist.getActions(deterministic);
             let logProb = this.actionDist.logProb(actions);
 
@@ -73,6 +87,7 @@ export class ActorCriticPolicy extends BasePolicy {
             let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
             this.actionDist.probaDistribution(actionLogits);
             let actions = this.actionDist.getActions(deterministic);
+            actions = actions.reshape(this.actionSpace.shape);
 
             return actions;
         })
@@ -117,8 +132,13 @@ export class ActorCriticPolicy extends BasePolicy {
             l = tf.layers.dense({
                 units: this.actionSpace.n, 
             }).apply(l) as tf.SymbolicTensor;
+        } else if(this.actionSpace instanceof spaces.Box) {
+            const size = this.actionSpace.shape.reduce((accumulator, currentValue) => accumulator * currentValue, 1);
+            l = tf.layers.dense({
+                units: size 
+            }).apply(l) as tf.SymbolicTensor;
         } else {
-            throw new Error('Unknown action space class');
+            throw new Error('Unknown action space');
         }
         return tf.model({inputs: input, outputs: l})
     }

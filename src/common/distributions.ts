@@ -41,6 +41,7 @@ export class CategoricalDistribution extends Distribution {
             }
             const numActions = this.actionLogits.shape[this.actionLogits.shape.length - 1]
             const logprobabilitiesAll = tf.logSoftmax(this.actionLogits)
+            actions = actions.reshape([-1]);
             return tf.sum(
                 tf.mul(tf.oneHot(actions, numActions), logprobabilitiesAll),
                 logprobabilitiesAll.shape.length - 1
@@ -64,13 +65,6 @@ export class CategoricalDistribution extends Distribution {
                 throw new Error("Something went wrong!");
             }
             let preds = this.actionLogits;
-            // if(preds instanceof tf.tensor1d) {
-            //     preds = preds as tf.Tensor1D;
-            // } else if(preds instanceof tf.tensor2d) {
-            //     preds = preds as tf.Tensor2D;
-            // } else {
-            //     throw new Error("Something went wrong!");
-            // }
             let action = tf.multinomial(preds as tf.Tensor2D, 1);
             action = action.reshape([1]);
             return action
@@ -85,24 +79,111 @@ export class CategoricalDistribution extends Distribution {
     }
 }
 
-// class DiagGaussianDistribution extends Distribution {
-//     private actionDim: number;
-//     private meanActions: tf.Tensor | null;
-//     private logStd: tf.Tensor | null;
+export class DiagGaussianDistribution extends Distribution {
+    private actionDim: number;
+    private meanActions: tf.Tensor | null;
+    private logStd: tf.Variable | null;
+    private logStdInit: number;
 
-//     constructor(actionDim: number) {
-//         super();
-//         this.actionDim = actionDim;
-//         this.meanActions = null;
-//         this.logStd = null;
-//     }
+    constructor(actionDim: number, logStdInit: number) {
+        super();
+        this.actionDim = actionDim;
+        this.meanActions = null;
+        this.logStdInit = logStdInit;
+        this.logStd = null;
+    }
 
-//     probaDistribution(meanActions: tf.Tensor, logStd: tf.Tensor) {
-//         this.meanActions = meanActions;
-//         this.logStd = logStd;
-//     }
+    makeLogStd() {
+        if(this.logStd !== null) {
+            tf.dispose(this.logStd);
+        }
+        this.logStd = tf.variable(tf.fill([this.actionDim], this.logStdInit), true, 'logStd');
+    }
 
-//     logProb(actions: tf.Tensor): tf.Tensor {
+    probaDistribution(meanActions: tf.Tensor) {
+        // this.meanActions = meanActions;
+        // this.logStd = logStd;
+        this.meanActions = meanActions;
+    }
 
-//     }
-// }
+    // https://github.com/zemlyansky/ppo-tfjs/blob/main/ppo.js
+    logProb(actions: tf.Tensor): tf.Tensor {
+        return tf.tidy(() => {
+            if(this.logStd === null || this.meanActions === null || this.logStd === null) {
+                throw Error("Values logStd, meanActions and logStd must not be null.");
+            }
+
+            this.logStd.print()
+
+            const logUnnormalized = tf.mul(
+                -0.5,
+                tf.square(
+                    tf.sub(
+                        tf.div(actions, tf.exp(this.logStd)),
+                        tf.div(this.meanActions, tf.exp(this.logStd))
+                    )
+                )
+            )
+            const logNormalization = tf.add(
+                tf.scalar(0.5 * Math.log(2.0 * Math.PI)),
+                tf.log(tf.exp(this.logStd))
+            )
+            return tf.sum(
+                tf.sub(logUnnormalized, logNormalization),
+                logUnnormalized.shape.length - 1
+            )
+        })
+    }
+
+/*
+    def entropy(self):
+        return 0.5 + 0.5 * math.log(2 * math.pi) + torch.log(self.scale)
+*/
+
+    entropy(): tf.Tensor {
+        return tf.tidy(() => {
+            if(this.meanActions === null || this.logStd === null) {
+                throw new Error("Something went wrong!");
+            }
+
+            const entropy = tf.add(
+                tf.log(this.logStd),
+                tf.scalar(0.5 + 0.5 * Math.log(2 * Math.PI))
+            )
+
+            return sumIndependentDims(entropy);
+        })
+    }
+
+    sample(): tf.Tensor {
+        return tf.tidy(() => {
+            if(this.meanActions === null || this.logStd === null) {
+                throw new Error("Something went wrong!");
+            }
+
+            const action = tf.add(
+                tf.mul(
+                    tf.randomNormal([this.actionDim], 0, 1), 
+                    tf.exp(this.logStd)
+                ),
+                this.meanActions
+            );
+            return action;
+        })
+    }
+
+    mode(): tf.Tensor {
+        if(this.meanActions === null) {
+            throw new Error("Something went wrong!");
+        }
+        return this.meanActions;
+    }
+}
+
+function sumIndependentDims(tensor: tf.Tensor): tf.Tensor {
+    if(tensor.shape.length > 1) {
+        return tensor.sum(1);
+    } else {
+        return tensor.sum();
+    }
+}
