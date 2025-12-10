@@ -118,6 +118,17 @@ export class ActorCriticPolicy extends BasePolicy {
         })
     }
 
+    getLogStd(): number | undefined {
+        if(this.actionDist instanceof DiagGaussianDistribution) {
+            const logStd = this.actionDist.getLogStd();;
+            if(logStd) {
+                return logStd;
+            }
+        }
+
+        return undefined;
+    }
+
     // https://github.com/zemlyansky/ppo-tfjs/blob/main/ppo.js
     private createActor(netArch: number[]) {
         const input = tf.layers.input({shape: this.observationSpace.shape})

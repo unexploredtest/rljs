@@ -29,7 +29,6 @@ const DEFAULT_POLICY_PARAMETERS: ActorCriticParams = {
 }
 
 
-
 export class PPO extends OnPolicyAlgorithm {
     private clipRange: number;
     private batchSize: number;
@@ -57,9 +56,11 @@ export class PPO extends OnPolicyAlgorithm {
         let pgLosses: number[] = [];
         let valueLosses: number[] = [];
         let clipFractions: number[] = [];
+        let approxKlDivs: number[] = [];
+        let lossValue: number = 0;
 
         for(let i = 0; i < this.nEpochs; i++) {
-            let approxKlDivs: number[] = [];
+            approxKlDivs = [];
             let continueTraining = true;
 
             for (let batch of this.buffer.get(this.batchSize)) {
@@ -94,6 +95,7 @@ export class PPO extends OnPolicyAlgorithm {
                     entropyLosses.push(entropyLoss.asScalar().dataSync()[0])
 
                     let loss = policyLoss.add(entropyLoss).add(valueLoss);
+                    lossValue = loss.asScalar().dataSync()[0];
 
                     const logRatio = logProb.sub(oldLogProb);
                     const approxKlDivScalar = tf.mean((tf.exp(logRatio).sub(tf.scalar(1)).sub(logRatio)));
@@ -123,6 +125,18 @@ export class PPO extends OnPolicyAlgorithm {
             if(!continueTraining) {
                 break;
             }
+        }
+
+        this.logger.record("Entropy Loss", tf.util.sum(entropyLosses) / entropyLosses.length);
+        this.logger.record("Policy Gradient Loss", tf.util.sum(pgLosses) / pgLosses.length);
+        this.logger.record("Value Loss", tf.util.sum(valueLosses) / valueLosses.length);
+        this.logger.record("Approximate KL", tf.util.sum(approxKlDivs) / approxKlDivs.length);
+        this.logger.record("Clip Fraction", tf.util.sum(clipFractions) / clipFractions.length);
+        this.logger.record("Loss", lossValue);
+
+        const logStd = this.policy.getLogStd();
+        if(logStd) {
+            this.logger.record("Log STD", logStd);
         }
     }
 }

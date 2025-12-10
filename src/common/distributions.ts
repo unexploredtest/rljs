@@ -100,6 +100,14 @@ export class DiagGaussianDistribution extends Distribution {
         this.logStd = tf.variable(tf.fill([this.actionDim], this.logStdInit), true, 'logStd');
     }
 
+    getLogStd(): number | null {
+        if(this.logStd === null) {
+            return null;
+        }
+
+        return this.logStd.asScalar().dataSync()[0];
+    }
+
     probaDistribution(meanActions: tf.Tensor) {
         // this.meanActions = meanActions;
         // this.logStd = logStd;
@@ -112,8 +120,6 @@ export class DiagGaussianDistribution extends Distribution {
             if(this.logStd === null || this.meanActions === null || this.logStd === null) {
                 throw Error("Values logStd, meanActions and logStd must not be null.");
             }
-
-            this.logStd.print()
 
             const logUnnormalized = tf.mul(
                 -0.5,

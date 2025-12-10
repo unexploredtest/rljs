@@ -18,6 +18,8 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
     protected vfCoef: number;
     protected maxGradNorm: number;
     protected policy: ActorCriticPolicy;
+    private totalReward: number;
+    private episodeLength: number;
 
     constructor(env: gym.Env | gym.Wrapper, hyperParams: OnPolicyHyperParams, policyParams: ActorCriticParams) {
         super(env, hyperParams);
@@ -30,10 +32,9 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         this.policy = new ActorCriticPolicy(this.observationSpace, this.actionSpace, policyParams);
 
         this.buffer = new RolloutBuffer(this.nSteps, this.observationSpace, this.actionSpace, this.gaeLmbda, this.gamma);
-    }
 
-    setupModel(): void {
-
+        this.totalReward = 0;
+        this.episodeLength = 0;
     }
 
     abstract train(): Promise<void>;
@@ -75,12 +76,21 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
             // tf.dispose(this.lastEpisodeStarts);
             this.lastEpisodeStarts = tf.tensor([done || truncated], [1], "float32");
 
+            this.totalReward += reward;
+            this.episodeLength += 1;
+
             if(done === true || truncated === true) {
-                avg += k;
-                let [obs2, info2] = this.env.reset();
-                this.lastObs = obs2;
-                k = 0;
-                i++;
+                // avg += k;
+                let [newObs, _] = this.env.reset();
+                this.lastObs = newObs;
+
+                this.logger.recordMean("Reward Mean", this.totalReward);
+                this.logger.recordMean("Episode Length Mean", this.episodeLength);
+
+                this.totalReward = 0;
+                this.episodeLength = 0;
+                // k = 0;
+                // i++;
             }
             // tf.dispose(actions);
             // tf.dispose(values);
@@ -88,7 +98,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
             // tf.dispose(obs);
         }
 
-        console.log("avg: " + avg / i)
+        // console.log("avg: " + avg / i)
 
         const values = this.policy.predictValues(this.lastObs);
         this.buffer.computeReturnsAndAdvantages(values, this.lastEpisodeStarts);
@@ -97,17 +107,40 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         return true;
     }
 
-    async learn(totalTimesteps: number): Promise<void> {
-        totalTimesteps = this.setupLearn(totalTimesteps);
+    async learn(totalTimesteps: number, resetNumTimesteps: boolean = false, logInterval: number | null = 1): Promise<void> {
+        let iteration = 0;
+
+        totalTimesteps = this.setupLearn(totalTimesteps, resetNumTimesteps);
 
         while(this.numTimesteps < totalTimesteps) {
-            console.time("exampleFunctionTime");
-            let continueTraining = await this.collectRollouts();
+            // console.time("exampleFunctionTime");
+            const continueTraining = await this.collectRollouts();
+
+            if(!continueTraining) {
+                break;
+            }
+            
+            iteration += 1
+
+            if(logInterval !== null && iteration % logInterval === 0) {
+                console.log(this.dumpLogs(iteration));
+            }
             
             await this.train();
-            console.log("Now: " + this.numTimesteps);
-            console.timeEnd("exampleFunctionTime");
+            // console.log("Now: " + this.numTimesteps);
+            // console.timeEnd("exampleFunctionTime");
         }
+    }
+
+    dumpLogs(iteration: number = 0) {
+        this.logger.record("Iteration", iteration);
+        // Record the time after the delay
+        const endTime = new Date();
+
+        // Calculate the time difference in milliseconds
+        const timeElapsed = (Date.now() - this.startTime) / 1000;
+        this.logger.record("Time Elapsed", timeElapsed);
+        return this.logger.dump(this.numTimesteps);
     }
 
 
