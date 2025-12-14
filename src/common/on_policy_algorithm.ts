@@ -81,7 +81,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
 
             if(done === true || truncated === true) {
                 // avg += k;
-                let [newObs, _] = this.env.reset();
+                let [newObs, _] = this.env.reset(undefined, null);
                 this.lastObs = newObs;
 
                 this.logger.recordMean("Reward Mean", this.totalReward);
@@ -134,11 +134,11 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
 
     dumpLogs(iteration: number = 0) {
         this.logger.record("Iteration", iteration);
-        // Record the time after the delay
-        const endTime = new Date();
 
         // Calculate the time difference in milliseconds
         const timeElapsed = (Date.now() - this.startTime) / 1000;
+        const fps = (this.numTimesteps - this.numTimestepsAtStart) / timeElapsed
+        this.logger.record("FPS", Math.round(fps));
         this.logger.record("Time Elapsed", timeElapsed);
         return this.logger.dump(this.numTimesteps);
     }

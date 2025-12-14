@@ -12,6 +12,7 @@ export abstract class BaseAlgorithm {
     protected observationSpace: spaces.Space;
     protected actionSpace: spaces.Space;
     protected numTimesteps: number;
+    protected numTimestepsAtStart: number;
     protected policy: BasePolicy | null;
     protected lastObs: tf.Tensor | null;
     protected lastEpisodeStarts: tf.Tensor| null;
@@ -27,6 +28,7 @@ export abstract class BaseAlgorithm {
         this.lastObs = null;
 
         this.numTimesteps = 0;
+        this.numTimestepsAtStart = 0;
         this.startTime = Date.now();
         this.logger = new Logger();
     }
@@ -35,7 +37,7 @@ export abstract class BaseAlgorithm {
 
     protected setupLearn(totalTimesteps: number, resetNumTimesteps: boolean = false): number {
         if(this.lastObs === null) {
-            let [obs, _] = this.env.reset();
+            let [obs, _] = this.env.reset(undefined, null);
             this.lastObs = obs;
         }
 
@@ -46,6 +48,8 @@ export abstract class BaseAlgorithm {
         } else {
             totalTimesteps += this.numTimesteps;
         }
+
+        this.numTimestepsAtStart = this.numTimesteps;
 
         return totalTimesteps;
     }
