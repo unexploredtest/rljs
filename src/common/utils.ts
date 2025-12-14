@@ -14,3 +14,18 @@ export function clipGradNorm(gradients: tf.NamedTensorMap, maxGradNorm: number):
         return normedGrad;
     })
 }
+
+export function clipTensor(tensor: tf.Tensor, low: tf.Tensor, high: tf.Tensor): tf.Tensor {
+    return tf.tidy( () => {
+        const upperFlow = high.sub(tensor);
+        const upperFixed = tensor.add(upperFlow);
+
+        const bottomFlow = low.sub(tensor);
+        const bottomFixed = tensor.add(bottomFlow);
+
+        tensor = tf.where(upperFlow.less(0), upperFixed, tensor);
+        tensor = tf.where(bottomFlow.less(0).logicalNot(), bottomFixed, tensor);
+
+        return tensor;
+    });
+}

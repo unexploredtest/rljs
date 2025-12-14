@@ -7,6 +7,7 @@ import { RolloutBuffer } from './buffers.js';
 import { ActorCriticPolicy } from './policies.js';
 import { OnPolicyHyperParams } from './type_aliases.js';
 import { ActorCriticParams } from './type_aliases.js';
+import { clipTensor } from './utils.js';
 
 
 export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
@@ -59,10 +60,20 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
                 const actionData = await actions.asScalar().data();
                 action = actionData[0];
             } else if(this.actionSpace instanceof spaces.Box) {
-                action = actions.clipByValue(-2, 2);
+                if(typeof this.actionSpace.low === 'number' && typeof this.actionSpace.high === 'number') {
+                    action = actions.clipByValue(this.actionSpace.low, this.actionSpace.high);
+                } else if(this.actionSpace.low instanceof tf.Tensor && this.actionSpace.high instanceof tf.Tensor) {
+                    action = clipTensor(actions, this.actionSpace.low, this.actionSpace.high);
+                } else {
+                    throw new Error('Low and high must of the same type in Box!');
+                }
+
+                action = action.reshape(this.actionSpace.shape);
+                
             } else {
                 throw new Error('Unknown action space');
             }
+
 
             let [obs, reward, done, truncated, info] = await this.env.step(action);
 
