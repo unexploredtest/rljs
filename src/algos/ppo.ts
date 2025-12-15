@@ -14,7 +14,7 @@ const DEFAULT_HYPER_PARAMETERS: PPOHyperParameters = {
     vfCoef: 0.5,
     maxGradNorm: 0.5,
     clipRange: 0.2,
-    normalizeadvantage: false,
+    normalizeadvantage: true,
     batchSize: 64,
     nEpochs: 10
 }
@@ -25,7 +25,7 @@ const DEFAULT_POLICY_PARAMETERS: ActorCriticParams = {
     optim: undefined,
     policyNet: [64, 64],
     valueNet: [64, 64],
-    logStdInit: 1.0
+    logStdInit: 0.0
 }
 
 
@@ -136,7 +136,7 @@ export class PPO extends OnPolicyAlgorithm {
 
         const logStd = this.policy.getLogStd();
         if(logStd) {
-            this.logger.record("Log STD", logStd);
+            this.logger.record("Log STD", tf.exp(logStd).mean().dataSync()[0]);
         }
     }
 }

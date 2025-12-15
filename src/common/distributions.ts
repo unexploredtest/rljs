@@ -82,7 +82,7 @@ export class CategoricalDistribution extends Distribution {
 export class DiagGaussianDistribution extends Distribution {
     private actionDim: number;
     private meanActions: tf.Tensor | null;
-    private logStd: tf.Variable | null;
+    public logStd: tf.Variable | null;
     private logStdInit: number;
 
     constructor(actionDim: number, logStdInit: number) {
@@ -100,14 +100,6 @@ export class DiagGaussianDistribution extends Distribution {
         this.logStd = tf.variable(tf.fill([this.actionDim], this.logStdInit), true, 'logStd');
     }
 
-    getLogStd(): number | null {
-        if(this.logStd === null) {
-            return null;
-        }
-
-        return this.logStd.asScalar().dataSync()[0];
-    }
-
     probaDistribution(meanActions: tf.Tensor) {
         // this.meanActions = meanActions;
         // this.logStd = logStd;
@@ -121,23 +113,16 @@ export class DiagGaussianDistribution extends Distribution {
                 throw Error("Values logStd, meanActions and logStd must not be null.");
             }
 
-            const logUnnormalized = tf.mul(
-                -0.5,
-                tf.square(
-                    tf.sub(
-                        tf.div(actions, tf.exp(this.logStd)),
-                        tf.div(this.meanActions, tf.exp(this.logStd))
-                    )
-                )
+            const variance = tf.exp(this.logStd).square();
+            const result = tf.sub(
+                tf.div(
+                    tf.neg(actions.sub(this.meanActions).square()),
+                    variance.mul(2)
+                ),
+                this.logStd.add(Math.log(Math.sqrt(2.0 * Math.PI)))
             )
-            const logNormalization = tf.add(
-                tf.scalar(0.5 * Math.log(2.0 * Math.PI)),
-                tf.log(tf.exp(this.logStd))
-            )
-            return tf.sum(
-                tf.sub(logUnnormalized, logNormalization),
-                logUnnormalized.shape.length - 1
-            )
+
+            return tf.sum(result, 1);
         })
     }
 
@@ -153,7 +138,7 @@ export class DiagGaussianDistribution extends Distribution {
             }
 
             const entropy = tf.add(
-                tf.log(this.logStd),
+                this.logStd,
                 tf.scalar(0.5 + 0.5 * Math.log(2 * Math.PI))
             )
 

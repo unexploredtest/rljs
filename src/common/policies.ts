@@ -118,9 +118,9 @@ export class ActorCriticPolicy extends BasePolicy {
         })
     }
 
-    getLogStd(): number | undefined {
+    getLogStd(): tf.Tensor | undefined {
         if(this.actionDist instanceof DiagGaussianDistribution) {
-            const logStd = this.actionDist.getLogStd();;
+            const logStd = this.actionDist.logStd?.clone();;
             if(logStd) {
                 return logStd;
             }

@@ -48,18 +48,14 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         let curNSteps = 0;
         this.buffer.reset();
 
-        let avg = 0;
-        let i = 0;
-        let k = 0;
-
         while(curNSteps < this.nSteps) {
-            k++;
             let [actions, values, logProbs] = this.policy.forward(this.lastObs, false);
             let action: tf.Tensor | number;
             if (this.actionSpace instanceof spaces.Discrete) {
                 const actionData = await actions.asScalar().data();
                 action = actionData[0];
             } else if(this.actionSpace instanceof spaces.Box) {
+                // actions.print();
                 if(typeof this.actionSpace.low === 'number' && typeof this.actionSpace.high === 'number') {
                     action = actions.clipByValue(this.actionSpace.low, this.actionSpace.high);
                 } else if(this.actionSpace.low instanceof tf.Tensor && this.actionSpace.high instanceof tf.Tensor) {
@@ -69,13 +65,18 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
                 }
 
                 action = action.reshape(this.actionSpace.shape);
-                
             } else {
                 throw new Error('Unknown action space');
             }
 
 
             let [obs, reward, done, truncated, info] = await this.env.step(action);
+            this.totalReward += reward;
+
+            if(!done && truncated) {
+                let values2 = this.policy.predictValues(obs);
+                reward += this.gamma * values2.asScalar().dataSync()[0];
+            }
 
             this.numTimesteps++;
             curNSteps++;
@@ -86,12 +87,10 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
             this.lastObs = obs;
             // tf.dispose(this.lastEpisodeStarts);
             this.lastEpisodeStarts = tf.tensor([done || truncated], [1], "float32");
-
-            this.totalReward += reward;
+            
             this.episodeLength += 1;
 
             if(done === true || truncated === true) {
-                // avg += k;
                 let [newObs, _] = this.env.reset(undefined, null);
                 this.lastObs = newObs;
 
@@ -100,8 +99,6 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
 
                 this.totalReward = 0;
                 this.episodeLength = 0;
-                // k = 0;
-                // i++;
             }
             // tf.dispose(actions);
             // tf.dispose(values);
