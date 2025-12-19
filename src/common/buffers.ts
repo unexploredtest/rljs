@@ -1,18 +1,17 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
-import * as spaces from 'gymjs/spaces'
 
 import { RolloutBufferSamples } from './type_aliases.js';
 
 abstract class BaseBuffer {
     protected bufferSize: number;
-    protected observationSpace: spaces.Space;
-    protected actionSpace: spaces.Space;
+    protected observationSpace: gym.spaces.Space;
+    protected actionSpace: gym.spaces.Space;
     // private actionDim: number[];
     protected pos: number;
     protected full: boolean;
 
-    constructor(bufferSize: number, observationSpace: spaces.Space, actionSpace: spaces.Space) {
+    constructor(bufferSize: number, observationSpace: gym.spaces.Space, actionSpace: gym.spaces.Space) {
         this.bufferSize = bufferSize;
         this.observationSpace = observationSpace;
         this.actionSpace = actionSpace;
@@ -67,7 +66,7 @@ export class RolloutBuffer extends BaseBuffer {
     gaeLambda: number;
     gamma: number;
 
-    constructor(bufferSize: number, observationSpace: spaces.Space, actionSpace: spaces.Space, gaeLambda: number, gamma: number) {
+    constructor(bufferSize: number, observationSpace: gym.spaces.Space, actionSpace: gym.spaces.Space, gaeLambda: number, gamma: number) {
         super(bufferSize, observationSpace, actionSpace);
         this.gaeLambda = gaeLambda;
         this.gamma = gamma;

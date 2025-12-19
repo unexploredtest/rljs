@@ -1,6 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
-import * as spaces from 'gymjs/spaces';
 
 import { BaseAlgorithm } from './base_algorithm.js';
 import { RolloutBuffer } from './buffers.js';
@@ -18,7 +17,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
     protected entCoef: number;
     protected vfCoef: number;
     protected maxGradNorm: number;
-    protected policy: ActorCriticPolicy;
+    public policy: ActorCriticPolicy;
     private totalReward: number;
     private episodeLength: number;
 
@@ -51,10 +50,10 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         while(curNSteps < this.nSteps) {
             let [actions, values, logProbs] = this.policy.forward(this.lastObs, false);
             let action: tf.Tensor | number;
-            if (this.actionSpace instanceof spaces.Discrete) {
+            if (this.actionSpace instanceof gym.spaces.Discrete) {
                 const actionData = await actions.asScalar().data();
                 action = actionData[0];
-            } else if(this.actionSpace instanceof spaces.Box) {
+            } else if(this.actionSpace instanceof gym.spaces.Box) {
                 // actions.print();
                 if(typeof this.actionSpace.low === 'number' && typeof this.actionSpace.high === 'number') {
                     action = actions.clipByValue(this.actionSpace.low, this.actionSpace.high);
@@ -91,7 +90,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
             this.episodeLength += 1;
 
             if(done === true || truncated === true) {
-                let [newObs, _] = this.env.reset(undefined, null);
+                let [newObs, _] = this.env.reset();
                 this.lastObs = newObs;
 
                 this.logger.recordMean("Reward Mean", this.totalReward);

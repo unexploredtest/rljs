@@ -1,6 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
-import * as spaces from 'gymjs/spaces';
 
 import { OnPolicyAlgorithm } from '../common/on_policy_algorithm.js';
 import { clipGradNorm } from '../common/utils.js';

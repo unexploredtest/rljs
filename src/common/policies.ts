@@ -1,17 +1,17 @@
 import * as tf from '@tensorflow/tfjs';
-import * as spaces from 'gymjs/spaces'
+import * as gym from 'gymjs';
 
 import { Distribution, CategoricalDistribution, DiagGaussianDistribution } from './distributions.js';
 import { BaseModelParams, ActorCriticParams, ActivationType } from './type_aliases.js';
 
 export abstract class baseModel {
-    protected observationSpace: spaces.Space;
-    protected actionSpace: spaces.Space;
+    protected observationSpace: gym.spaces.Space;
+    protected actionSpace: gym.spaces.Space;
     public activation: ActivationType;
     public optim: tf.Optimizer;
     public lr: number;
 
-    constructor(observationSpace: spaces.Space, actionSpace: spaces.Space, modelParams: BaseModelParams) {
+    constructor(observationSpace: gym.spaces.Space, actionSpace: gym.spaces.Space, modelParams: BaseModelParams) {
         this.observationSpace = observationSpace;
         this.actionSpace = actionSpace;
         this.lr = modelParams.lr;
@@ -38,13 +38,13 @@ export class ActorCriticPolicy extends BasePolicy {
     private actionDist: Distribution;
     private logStdInit: number;
 
-    constructor(observationSpace: spaces.Space, actionSpace: spaces.Space, modelParams: ActorCriticParams) {
+    constructor(observationSpace: gym.spaces.Space, actionSpace: gym.spaces.Space, modelParams: ActorCriticParams) {
         super(observationSpace, actionSpace, modelParams);
         this.lr = modelParams.lr;
         this.logStdInit = modelParams.logStdInit;
-        if(actionSpace instanceof spaces.Discrete) {
+        if(actionSpace instanceof gym.spaces.Discrete) {
             this.actionDist = new CategoricalDistribution(actionSpace.n);
-        } else if(this.actionSpace instanceof spaces.Box) {
+        } else if(this.actionSpace instanceof gym.spaces.Box) {
             const size = actionSpace.shape.reduce((accumulator, currentValue) => accumulator * currentValue, 1);
             this.actionDist = new DiagGaussianDistribution(size, this.logStdInit);
             (this.actionDist as DiagGaussianDistribution).makeLogStd();
@@ -139,11 +139,11 @@ export class ActorCriticPolicy extends BasePolicy {
                 activation: 'relu'
             }).apply(l) as tf.SymbolicTensor;
         })
-        if (this.actionSpace instanceof spaces.Discrete) {
+        if (this.actionSpace instanceof gym.spaces.Discrete) {
             l = tf.layers.dense({
                 units: this.actionSpace.n, 
             }).apply(l) as tf.SymbolicTensor;
-        } else if(this.actionSpace instanceof spaces.Box) {
+        } else if(this.actionSpace instanceof gym.spaces.Box) {
             const size = this.actionSpace.shape.reduce((accumulator, currentValue) => accumulator * currentValue, 1);
             l = tf.layers.dense({
                 units: size 

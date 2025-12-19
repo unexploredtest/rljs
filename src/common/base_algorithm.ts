@@ -1,6 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
-import * as spaces from 'gymjs/spaces'
 
 import { BasePolicy, ActorCriticPolicy } from './policies.js';
 import { BaseHyperParams } from './type_aliases.js';
@@ -9,11 +8,11 @@ import { Logger } from './logger.js';
 
 export abstract class BaseAlgorithm {
     public env: gym.Env | gym.Wrapper;
-    protected observationSpace: spaces.Space;
-    protected actionSpace: spaces.Space;
+    protected observationSpace: gym.spaces.Space;
+    protected actionSpace: gym.spaces.Space;
     protected numTimesteps: number;
     protected numTimestepsAtStart: number;
-    protected policy: BasePolicy | null;
+    public policy: BasePolicy | null;
     protected lastObs: tf.Tensor | null;
     protected lastEpisodeStarts: tf.Tensor| null;
     protected logger: Logger;
@@ -37,7 +36,7 @@ export abstract class BaseAlgorithm {
 
     protected setupLearn(totalTimesteps: number, resetNumTimesteps: boolean = false): number {
         if(this.lastObs === null) {
-            let [obs, _] = this.env.reset(undefined, null);
+            let [obs, _] = this.env.reset();
             this.lastObs = obs;
         }
 
