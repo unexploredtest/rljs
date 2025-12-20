@@ -97,6 +97,7 @@ export class RolloutBuffer extends BaseBuffer {
 
         this.observations = [];
         this.actions = [];
+        this.rewards = [];
         this.returns = tf.zeros([this.bufferSize]);
         this.episodeStarts = [];
         this.values = [];
