@@ -87,13 +87,13 @@ export class PPO extends OnPolicyAlgorithm {
                     const clipFraction = tf.mean(tf.scalar(this.clipRange).less((tf.abs(ratio.sub(tf.scalar(1)))).toFloat()));
                     clipFractions.push(clipFraction.asScalar().dataSync()[0]);
 
-                    let valueLoss = (returns.sub(values)).square().mean().mul(this.vfCoef);
+                    let valueLoss = (returns.sub(values)).square().mean();
                     valueLosses.push(valueLoss.asScalar().dataSync()[0])
 
-                    let entropyLoss = tf.neg(entropy.mean()).mul(tf.scalar(this.entCoef));
+                    let entropyLoss = tf.neg(entropy.mean());
                     entropyLosses.push(entropyLoss.asScalar().dataSync()[0])
 
-                    let loss = policyLoss.add(entropyLoss).add(valueLoss);
+                    let loss = policyLoss.add(entropyLoss.mul(this.entCoef)).add(valueLoss.mul(this.vfCoef));
                     lossValue = loss.asScalar().dataSync()[0];
 
                     const logRatio = logProb.sub(oldLogProb);
