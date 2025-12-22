@@ -64,6 +64,8 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
                 }
 
                 action = action.reshape(this.actionSpace.shape);
+            } else if(this.actionSpace instanceof gym.spaces.MultiDiscrete) {
+                action = actions.reshape(this.actionSpace.shape);
             } else {
                 throw new Error('Unknown action space');
             }
@@ -120,7 +122,6 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         totalTimesteps = this.setupLearn(totalTimesteps, resetNumTimesteps);
 
         while(this.numTimesteps < totalTimesteps) {
-            // console.time("exampleFunctionTime");
             const continueTraining = await this.collectRollouts();
 
             if(!continueTraining) {
@@ -135,7 +136,6 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
             
             await this.train();
             // console.log("Now: " + this.numTimesteps);
-            // console.timeEnd("exampleFunctionTime");
         }
     }
 

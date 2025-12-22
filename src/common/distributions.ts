@@ -20,12 +20,10 @@ export abstract class Distribution {
 }
 
 export class CategoricalDistribution extends Distribution {
-    // private actionDim: number;
     private actionLogits: tf.Tensor | null;
 
-    constructor(actionDim: number) {
+    constructor() {
         super();
-        // this.actionDim = actionDim;
         this.actionLogits = null;
     }
 
@@ -76,6 +74,59 @@ export class CategoricalDistribution extends Distribution {
             throw new Error("Something went wrong!");
         }
         return tf.argMax(this.actionLogits, 1);
+    }
+}
+
+export class MultiCategoricalDistribution extends Distribution {
+    private actionDim: number[];
+    // private actionLogits: tf.Tensor | null;
+    private catDists: CategoricalDistribution[];
+
+    constructor(actionDim: number[]) {
+        super();
+        this.actionDim = actionDim;
+        this.catDists = [];
+    }
+
+    probaDistribution(actionLogits: tf.Tensor) {
+        this.catDists = tf.split(actionLogits, this.actionDim, 1).map(split => {
+            const catDist = new CategoricalDistribution();
+            catDist.probaDistribution(split);
+            return catDist;
+        });
+    }
+
+    logProb(actions: tf.Tensor) {
+        return tf.tidy(() => {
+            const size =  (actions.shape as number[])[1]
+            return tf.stack(actions.split(size, 1).map(
+                (split, index) => this.catDists[index].logProb(split)
+            ), 1).sum(1);
+        })
+    }
+
+    entropy(): tf.Tensor {
+        return tf.tidy(() => {
+            return tf.stack(this.catDists.map(
+                (catDis) => catDis.entropy()
+            ), 1).sum(1);
+        })
+    }
+
+    sample(): tf.Tensor {
+        return tf.tidy(() => {
+            return tf.stack(this.catDists.map(
+                (catDis) => catDis.sample()
+            ), 1);
+        })
+    }
+
+    mode(): tf.Tensor {
+        return tf.tidy(() => {
+            return tf.stack(this.catDists.map(
+                (catDis) => catDis.mode()
+            ), 1);
+        })
     }
 }
 

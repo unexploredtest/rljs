@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 
-import { Distribution, CategoricalDistribution, DiagGaussianDistribution } from './distributions.js';
+import { Distribution, CategoricalDistribution, DiagGaussianDistribution, MultiCategoricalDistribution } from './distributions.js';
 import { BaseModelParams, ActorCriticParams, ActivationType } from './type_aliases.js';
 
 export abstract class baseModel {
@@ -43,11 +43,13 @@ export class ActorCriticPolicy extends BasePolicy {
         this.lr = modelParams.lr;
         this.logStdInit = modelParams.logStdInit;
         if(actionSpace instanceof gym.spaces.Discrete) {
-            this.actionDist = new CategoricalDistribution(actionSpace.n);
+            this.actionDist = new CategoricalDistribution();
         } else if(this.actionSpace instanceof gym.spaces.Box) {
             const size = actionSpace.shape.reduce((accumulator, currentValue) => accumulator * currentValue, 1);
             this.actionDist = new DiagGaussianDistribution(size, this.logStdInit);
             (this.actionDist as DiagGaussianDistribution).makeLogStd();
+        } else if(this.actionSpace instanceof gym.spaces.MultiDiscrete) {
+            this.actionDist = new MultiCategoricalDistribution(Array.from(this.actionSpace.nVec.reshape([-1]).dataSync()));
         } else {
             throw new Error("Not supported!");
         }
@@ -145,6 +147,11 @@ export class ActorCriticPolicy extends BasePolicy {
             }).apply(l) as tf.SymbolicTensor;
         } else if(this.actionSpace instanceof gym.spaces.Box) {
             const size = this.actionSpace.shape.reduce((accumulator, currentValue) => accumulator * currentValue, 1);
+            l = tf.layers.dense({
+                units: size 
+            }).apply(l) as tf.SymbolicTensor;
+        } else if(this.actionSpace instanceof gym.spaces.MultiDiscrete) {
+            const size = this.actionSpace.nVec.sum().asScalar().dataSync()[0];
             l = tf.layers.dense({
                 units: size 
             }).apply(l) as tf.SymbolicTensor;
