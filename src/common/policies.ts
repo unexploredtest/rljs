@@ -25,6 +25,10 @@ export abstract class baseModel {
             this.optim = tf.train.adam(this.lr);
         }
     }
+
+    // https://stackoverflow.com/questions/52355693/tensorflow-js-save-model-using-node
+    abstract saveModels(...URLs: string[]): Promise<void>;
+    abstract loadModels(...URLs: string[]): Promise<void>;
 }
 
 export abstract class BasePolicy extends baseModel {
@@ -118,6 +122,16 @@ export class ActorCriticPolicy extends BasePolicy {
 
             return [values, logProb, entropy];
         })
+    }
+
+    async saveModels(PolicyURL: string, ValueURL: string): Promise<void> {
+        const saveResultPolicy = await this.policyModel.save(PolicyURL);
+        const saveResultValue = await this.valueModel.save(ValueURL);
+    }
+
+    async loadModels(PolicyURL: string, ValueURL: string): Promise<void> {
+        this.policyModel = await tf.loadLayersModel(PolicyURL);
+        this.valueModel = await tf.loadLayersModel(ValueURL);
     }
 
     getLogStd(): tf.Tensor | undefined {

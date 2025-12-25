@@ -62,7 +62,8 @@ export abstract class BaseAlgorithm {
         return this.policy.predict(obs, deterministic);
     }
 
-
+    abstract saveModels(...URLs: string[]): Promise<void>;
+    abstract loadModels(...URLs: string[]): Promise<void>;
 }
 
 

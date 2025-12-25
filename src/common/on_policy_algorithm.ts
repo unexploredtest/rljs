@@ -150,5 +150,11 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         return this.logger.dump(this.numTimesteps);
     }
 
+    async saveModels(PolicyURL: string, ValueURL: string): Promise<void> {
+        await this.policy.saveModels(PolicyURL, ValueURL);
+    }
 
+    async loadModels(PolicyURL: string, ValueURL: string): Promise<void> {
+        await this.policy.loadModels(PolicyURL, ValueURL);
+    }
 }
