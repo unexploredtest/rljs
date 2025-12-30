@@ -28,14 +28,14 @@ const DEFAULT_POLICY_PARAMETERS: ActorCriticParams = {
 }
 
 
-export class PPO extends OnPolicyAlgorithm {
+export class PPO<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> extends OnPolicyAlgorithm<ObsType, ActType> {
     private clipRange: number;
     private batchSize: number;
     private nEpochs: number;
     private normalizeadvantage: boolean;
     private target_kl: number | undefined;
 
-    constructor(env: gym.Env | gym.Wrapper, hyperParameters: Partial<PPOHyperParameters> = {}, policyParameters: Partial<ActorCriticParams> = {}) {
+    constructor(env: gym.Env<ObsType, ActType>, hyperParameters: Partial<PPOHyperParameters> = {}, policyParameters: Partial<ActorCriticParams> = {}) {
         const fHyperParameters = Object.assign({}, DEFAULT_HYPER_PARAMETERS, hyperParameters) as PPOHyperParameters;
         const fPolicyParameters = Object.assign({}, DEFAULT_POLICY_PARAMETERS, policyParameters) as ActorCriticParams;
         super(env, fHyperParameters, fPolicyParameters);

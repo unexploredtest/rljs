@@ -4,14 +4,14 @@ import * as gym from 'gymjs';
 import { Distribution, CategoricalDistribution, DiagGaussianDistribution, MultiCategoricalDistribution } from './distributions.js';
 import { BaseModelParams, ActorCriticParams, ActivationType } from './type_aliases.js';
 
-export abstract class baseModel {
-    protected observationSpace: gym.spaces.Space;
-    protected actionSpace: gym.spaces.Space;
+export abstract class baseModel<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> {
+    protected observationSpace: gym.spaces.Space<ObsType>;
+    protected actionSpace: gym.spaces.Space<ActType>;
     public activation: ActivationType;
     public optim: tf.Optimizer;
     public lr: number;
 
-    constructor(observationSpace: gym.spaces.Space, actionSpace: gym.spaces.Space, modelParams: BaseModelParams) {
+    constructor(observationSpace: gym.spaces.Space<ObsType>, actionSpace: gym.spaces.Space<ActType>, modelParams: BaseModelParams) {
         this.observationSpace = observationSpace;
         this.actionSpace = actionSpace;
         this.lr = modelParams.lr;
@@ -31,18 +31,18 @@ export abstract class baseModel {
     abstract loadModels(...URLs: string[]): Promise<void>;
 }
 
-export abstract class BasePolicy extends baseModel {
+export abstract class BasePolicy<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> extends baseModel<ObsType, ActType> {
     abstract predict(obs: tf.Tensor, deterministic: boolean): tf.Tensor;
 }
 
-export class ActorCriticPolicy extends BasePolicy {
+export class ActorCriticPolicy<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> extends BasePolicy<ObsType, ActType>  {
     public policyModel: tf.LayersModel;
     public valueModel: tf.LayersModel;
 
     private actionDist: Distribution;
     private logStdInit: number;
 
-    constructor(observationSpace: gym.spaces.Space, actionSpace: gym.spaces.Space, modelParams: ActorCriticParams) {
+    constructor(observationSpace: gym.spaces.Space<ObsType>, actionSpace: gym.spaces.Space<ActType>, modelParams: ActorCriticParams) {
         super(observationSpace, actionSpace, modelParams);
         this.lr = modelParams.lr;
         this.logStdInit = modelParams.logStdInit;

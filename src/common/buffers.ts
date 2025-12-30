@@ -5,16 +5,16 @@ import { RolloutBufferSamples } from './type_aliases.js';
 
 abstract class BaseBuffer {
     protected bufferSize: number;
-    protected observationSpace: gym.spaces.Space;
-    protected actionSpace: gym.spaces.Space;
+    protected observationShape: number[];
+    protected actionShape: number[];
     // private actionDim: number[];
     protected pos: number;
     protected full: boolean;
 
-    constructor(bufferSize: number, observationSpace: gym.spaces.Space, actionSpace: gym.spaces.Space) {
+    constructor(bufferSize: number, observationShape: number[], actionShape: number[]) {
         this.bufferSize = bufferSize;
-        this.observationSpace = observationSpace;
-        this.actionSpace = actionSpace;
+        this.observationShape = observationShape;
+        this.actionShape = actionShape;
 
         this.pos = 0;
         this.full = false;
@@ -66,8 +66,8 @@ export class RolloutBuffer extends BaseBuffer {
     gaeLambda: number;
     gamma: number;
 
-    constructor(bufferSize: number, observationSpace: gym.spaces.Space, actionSpace: gym.spaces.Space, gaeLambda: number, gamma: number) {
-        super(bufferSize, observationSpace, actionSpace);
+    constructor(bufferSize: number, observationShape: number[], actionShape: number[], gaeLambda: number, gamma: number) {
+        super(bufferSize, observationShape, actionShape);
         this.gaeLambda = gaeLambda;
         this.gamma = gamma;
         // Unfortunately I can't just call this.reset() and expect TS to figure it out
@@ -159,8 +159,8 @@ export class RolloutBuffer extends BaseBuffer {
     computeStackedTensors() {
         tf.dispose(this.stackedTensors);
         this.stackedTensors = [];
-        this.stackedTensors.push(tf.stack(this.observations).reshape([this.pos, ...this.observationSpace.shape])),
-        this.stackedTensors.push(tf.stack(this.actions).reshape([this.pos, ...this.actionSpace.shape])),
+        this.stackedTensors.push(tf.stack(this.observations).reshape([this.pos, ...this.observationShape])),
+        this.stackedTensors.push(tf.stack(this.actions).reshape([this.pos, ...this.actionShape])),
         this.stackedTensors.push(tf.stack(this.values).reshape([this.pos])),
         this.stackedTensors.push(tf.stack(this.logProbs).reshape([this.pos])),
         this.stackedTensors.push(tf.stack(this.advantages).reshape([this.pos]))

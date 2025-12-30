@@ -6,18 +6,18 @@ import { BaseHyperParams } from './type_aliases.js';
 import { Logger } from './logger.js';
 
 
-export abstract class BaseAlgorithm {
-    public env: gym.Env | gym.Wrapper;
-    protected observationSpace: gym.spaces.Space;
-    protected actionSpace: gym.spaces.Space;
+export abstract class BaseAlgorithm<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> {
+    public env: gym.Env<ObsType, ActType>;
+    protected observationSpace: gym.spaces.Space<ObsType>;
+    protected actionSpace: gym.spaces.Space<ActType>;
     protected numTimesteps: number;
     protected numTimestepsAtStart: number;
-    public policy: BasePolicy | null;
+    public policy: BasePolicy<ObsType, ActType> | null;
     protected lastObs: tf.Tensor | null;
-    protected lastEpisodeStarts: tf.Tensor| null;
+    protected lastEpisodeStarts: tf.Tensor | null;
     protected logger: Logger;
     protected startTime: number;
-    constructor(env: gym.Env | gym.Wrapper, hyperParams: BaseHyperParams) {
+    constructor(env: gym.Env<ObsType, ActType>, hyperParams: BaseHyperParams) {
         this.env = env;
         this.observationSpace = env.observationSpace;
         this.actionSpace = env.actionSpace;
@@ -55,7 +55,7 @@ export abstract class BaseAlgorithm {
 
     abstract learn(totalTimesteps: number): void;
 
-    predict(obs: tf.Tensor, deterministic: boolean) {
+    predict(obs: ObsType, deterministic: boolean) {
         if(this.policy === null) {
             throw new Error("Policy not defined!");
         }

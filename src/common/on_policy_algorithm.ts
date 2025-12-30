@@ -9,7 +9,7 @@ import { ActorCriticParams } from './type_aliases.js';
 import { clipTensor } from './utils.js';
 
 
-export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
+export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> extends BaseAlgorithm<ObsType, ActType> {
     protected buffer: RolloutBuffer;
     protected nSteps: number;
     protected gamma: number;
@@ -17,11 +17,11 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
     protected entCoef: number;
     protected vfCoef: number;
     protected maxGradNorm: number;
-    public policy: ActorCriticPolicy;
+    public policy: ActorCriticPolicy<ObsType, ActType>;
     private totalReward: number;
     private episodeLength: number;
 
-    constructor(env: gym.Env | gym.Wrapper, hyperParams: OnPolicyHyperParams, policyParams: ActorCriticParams) {
+    constructor(env: gym.Env<ObsType, ActType>, hyperParams: OnPolicyHyperParams, policyParams: ActorCriticParams) {
         super(env, hyperParams);
         this.nSteps = hyperParams.nSteps;
         this.gamma = hyperParams.gamma;
@@ -31,7 +31,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
         this.maxGradNorm = hyperParams.maxGradNorm;
         this.policy = new ActorCriticPolicy(this.observationSpace, this.actionSpace, policyParams);
 
-        this.buffer = new RolloutBuffer(this.nSteps, this.observationSpace, this.actionSpace, this.gaeLmbda, this.gamma);
+        this.buffer = new RolloutBuffer(this.nSteps, this.observationSpace.shape, this.actionSpace.shape, this.gaeLmbda, this.gamma);
 
         this.totalReward = 0;
         this.episodeLength = 0;
@@ -46,8 +46,12 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
 
         let curNSteps = 0;
         this.buffer.reset();
+        this.lastObs
 
         while(curNSteps < this.nSteps) {
+            if(this.lastObs === null || this.lastEpisodeStarts === null) {
+                throw new Error("Last obs/episode start must not be null!");
+            }
             let [actions, values, logProbs] = this.policy.forward(this.lastObs, false);
             let action: tf.Tensor | number;
             if (this.actionSpace instanceof gym.spaces.Discrete) {
@@ -71,7 +75,7 @@ export abstract class OnPolicyAlgorithm extends BaseAlgorithm {
             }
 
 
-            let [obs, reward, done, truncated, info] = await this.env.step(action);
+            let [obs, reward, done, truncated, info] = await this.env.step(action as ActType);
             this.totalReward += reward;
 
             if(!done && truncated) {
