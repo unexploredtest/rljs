@@ -68,7 +68,7 @@ export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType exten
                 }
 
                 action = action.reshape(this.actionSpace.shape);
-            } else if(this.actionSpace instanceof gym.spaces.MultiDiscrete) {
+            } else if(this.actionSpace instanceof gym.spaces.MultiDiscrete || this.actionSpace instanceof gym.spaces.MultiBinary) {
                 action = actions.reshape(this.actionSpace.shape);
             } else {
                 throw new Error('Unknown action space');

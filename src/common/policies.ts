@@ -54,6 +54,10 @@ export class ActorCriticPolicy<ObsType extends tf.Tensor, ActType extends tf.Ten
             (this.actionDist as DiagGaussianDistribution).makeLogStd();
         } else if(this.actionSpace instanceof gym.spaces.MultiDiscrete) {
             this.actionDist = new MultiCategoricalDistribution(Array.from(this.actionSpace.nVec.reshape([-1]).dataSync()));
+        } else if(this.actionSpace instanceof gym.spaces.MultiBinary) {
+            // We treat multibinary the same as multidiscrete
+            const nVec = tf.ones(this.actionSpace.shape).mul(2);
+            this.actionDist = new MultiCategoricalDistribution(Array.from(nVec.reshape([-1]).dataSync()));
         } else {
             throw new Error("Not supported!");
         }
@@ -166,6 +170,13 @@ export class ActorCriticPolicy<ObsType extends tf.Tensor, ActType extends tf.Ten
             }).apply(l) as tf.SymbolicTensor;
         } else if(this.actionSpace instanceof gym.spaces.MultiDiscrete) {
             const size = this.actionSpace.nVec.sum().asScalar().dataSync()[0];
+            l = tf.layers.dense({
+                units: size 
+            }).apply(l) as tf.SymbolicTensor;
+        } else if(this.actionSpace instanceof gym.spaces.MultiBinary) {
+            // we treat multibinary the same as multidiscrete
+            const nVec = tf.ones(this.actionSpace.shape).mul(2);
+            const size = nVec.sum().asScalar().dataSync()[0];
             l = tf.layers.dense({
                 units: size 
             }).apply(l) as tf.SymbolicTensor;
