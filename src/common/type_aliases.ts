@@ -33,6 +33,10 @@ export interface PPOHyperParameters extends OnPolicyHyperParams {
     target_kl?: number;
 }
 
+export interface A2CHyperParameters extends OnPolicyHyperParams {
+    normalizeadvantage: boolean;
+}
+
 export interface BaseModelParams {
     lr: number;
     activation: ActivationType;
