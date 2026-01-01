@@ -2,8 +2,8 @@ import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 
 import { OnPolicyAlgorithm } from '../common/on_policy_algorithm.js';
-import { clipGradNorm } from '../common/utils.js';
-import { A2CHyperParameters, ActorCriticParams } from '../common/type_aliases.js';
+import { clipGradNorm, explainedVariance } from '../common/utils.js';
+import { A2CHyperParameters, ActorCriticParams, RolloutBufferResult } from '../common/type_aliases.js';
 
 const DEFAULT_HYPER_PARAMETERS: A2CHyperParameters = {
     nSteps: 5,
@@ -79,15 +79,20 @@ export class A2C<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> 
             })
         }
 
+        const explainedVar = explainedVariance((this.buffer.stackedTensors as RolloutBufferResult)["values"], this.buffer.returns);
+        
         this.logger.record("Entropy Loss", tf.util.sum(entropyLosses) / entropyLosses.length);
         this.logger.record("Policy Gradient Loss", tf.util.sum(pgLosses) / pgLosses.length);
         this.logger.record("Value Loss", tf.util.sum(valueLosses) / valueLosses.length);
         this.logger.record("Loss", lossValue);
+        this.logger.record("Explained Variance", explainedVar.dataSync()[0]);
 
         const logStd = this.policy.getLogStd();
         if(logStd) {
             this.logger.record("Log STD", tf.exp(logStd).mean().dataSync()[0]);
         }
+
+        tf.dispose(explainedVar);
     }
 
     async learn(totalTimesteps: number, resetNumTimesteps: boolean = false, logInterval: number | null = 100): Promise<void> {
