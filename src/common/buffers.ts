@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 
-import { RolloutBufferSamples } from './type_aliases.js';
+import { RolloutBufferResult, RolloutBufferSamples } from './type_aliases.js';
 
 abstract class BaseBuffer {
     protected bufferSize: number;
@@ -61,7 +61,7 @@ export class RolloutBuffer extends BaseBuffer {
     logProbs: tf.Tensor[];
     values: tf.Tensor[];
     advantages: tf.Tensor[];
-    stackedTensors: tf.Tensor[];
+    stackedTensors: RolloutBufferResult | null;
 
     gaeLambda: number;
     gamma: number;
@@ -79,7 +79,7 @@ export class RolloutBuffer extends BaseBuffer {
         this.values = [];
         this.logProbs = [];
         this.advantages = [];
-        this.stackedTensors = []
+        this.stackedTensors = null;
         super.reset();
     }
 
@@ -92,8 +92,11 @@ export class RolloutBuffer extends BaseBuffer {
             this.values, 
             this.logProbs, 
             this.advantages, 
-            this.stackedTensors
         ]);
+
+        if(this.stackedTensors !== null) {
+            tf.dispose(this.stackedTensors);
+        }
 
         this.observations = [];
         this.actions = [];
@@ -103,7 +106,7 @@ export class RolloutBuffer extends BaseBuffer {
         this.values = [];
         this.logProbs = [];
         this.advantages = [];
-        this.stackedTensors = [];
+        this.stackedTensors = null;
         super.reset();
     }
 
@@ -138,17 +141,21 @@ export class RolloutBuffer extends BaseBuffer {
     }
 
     protected getSamples(indices: tf.Tensor): RolloutBufferSamples {
-        if(this.stackedTensors.length === 0) {
+        if(this.stackedTensors === null) {
             this.computeStackedTensors();
         }
 
         return tf.tidy(() => {
+            if(this.stackedTensors === null) {
+                throw new Error("Stacked tensors shouldn't be null, something must have gone wrong.");
+            }
+
             const data = [
-                this.stackedTensors[0].gather(indices),
-                this.stackedTensors[1].gather(indices),
-                this.stackedTensors[2].gather(indices),
-                this.stackedTensors[3].gather(indices),
-                this.stackedTensors[4].gather(indices),
+                this.stackedTensors["observations"].gather(indices),
+                this.stackedTensors["actions"].gather(indices),
+                this.stackedTensors["values"].gather(indices),
+                this.stackedTensors["logProb"].gather(indices),
+                this.stackedTensors["advantages"].gather(indices),
                 this.returns.gather(indices)
             ] as RolloutBufferSamples;
 
@@ -157,13 +164,17 @@ export class RolloutBuffer extends BaseBuffer {
     }
 
     computeStackedTensors() {
-        tf.dispose(this.stackedTensors);
-        this.stackedTensors = [];
-        this.stackedTensors.push(tf.stack(this.observations).reshape([this.pos, ...this.observationShape])),
-        this.stackedTensors.push(tf.stack(this.actions).reshape([this.pos, ...this.actionShape])),
-        this.stackedTensors.push(tf.stack(this.values).reshape([this.pos])),
-        this.stackedTensors.push(tf.stack(this.logProbs).reshape([this.pos])),
-        this.stackedTensors.push(tf.stack(this.advantages).reshape([this.pos]))
+        if(this.stackedTensors !== null) {
+            tf.dispose(this.stackedTensors);
+        }
+
+        this.stackedTensors = {
+            observations: tf.stack(this.observations).reshape([this.pos, ...this.observationShape]),
+            actions: tf.stack(this.actions).reshape([this.pos, ...this.actionShape]),
+            values: tf.stack(this.values).reshape([this.pos]),
+            logProb: tf.stack(this.logProbs).reshape([this.pos]),
+            advantages: tf.stack(this.advantages).reshape([this.pos])
+        }
     }
 
     computeReturnsAndAdvantages(lastValues: tf.Tensor, dones: tf.Tensor): void {

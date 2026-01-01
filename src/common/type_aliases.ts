@@ -12,6 +12,14 @@ export type RolloutBufferSamples = [
     returns: tf.Tensor
 ]
 
+export type RolloutBufferResult = {
+    observations: tf.Tensor,
+    actions: tf.Tensor,
+    values: tf.Tensor,
+    logProb: tf.Tensor,
+    advantages: tf.Tensor
+}
+
 export interface BaseHyperParams {
 
 }
