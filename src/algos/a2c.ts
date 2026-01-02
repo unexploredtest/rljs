@@ -29,10 +29,10 @@ export class A2C<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> 
     private normalizeadvantage: boolean;
     private target_kl: number | undefined;
 
-    constructor(env: gym.Env<ObsType, ActType>, hyperParameters: Partial<A2CHyperParameters> = {}, policyParameters: Partial<ActorCriticParams> = {}) {
+    constructor(env: gym.Env<ObsType, ActType>, hyperParameters: Partial<A2CHyperParameters> = {}, policyParameters: Partial<ActorCriticParams> = {}, verbose = false) {
         const fHyperParameters = Object.assign({}, DEFAULT_HYPER_PARAMETERS, hyperParameters) as A2CHyperParameters;
         const fPolicyParameters = Object.assign({}, DEFAULT_POLICY_PARAMETERS, policyParameters) as ActorCriticParams;
-        super(env, fHyperParameters, fPolicyParameters);
+        super(env, fHyperParameters, fPolicyParameters, verbose);
         this.normalizeadvantage = fHyperParameters.normalizeadvantage;
     }
 

@@ -21,8 +21,8 @@ export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType exten
     private totalReward: number;
     private episodeLength: number;
 
-    constructor(env: gym.Env<ObsType, ActType>, hyperParams: OnPolicyHyperParams, policyParams: ActorCriticParams) {
-        super(env, hyperParams);
+    constructor(env: gym.Env<ObsType, ActType>, hyperParams: OnPolicyHyperParams, policyParams: ActorCriticParams, verbose: boolean) {
+        super(env, hyperParams, verbose);
         this.nSteps = hyperParams.nSteps;
         this.gamma = hyperParams.gamma;
         this.gaeLmbda = hyperParams.gaeLmbda;
@@ -134,7 +134,7 @@ export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType exten
             
             iteration += 1
 
-            if(logInterval !== null && iteration % logInterval === 0) {
+            if(this.verbose && logInterval !== null && iteration % logInterval === 0) {
                 console.log(this.dumpLogs(iteration));
             }
             

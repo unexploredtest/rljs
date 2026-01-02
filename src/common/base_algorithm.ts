@@ -17,7 +17,8 @@ export abstract class BaseAlgorithm<ObsType extends tf.Tensor, ActType extends t
     protected lastEpisodeStarts: tf.Tensor | null;
     protected logger: Logger;
     protected startTime: number;
-    constructor(env: gym.Env<ObsType, ActType>, hyperParams: BaseHyperParams) {
+    protected verbose: boolean;
+    constructor(env: gym.Env<ObsType, ActType>, hyperParams: BaseHyperParams, verbose: boolean) {
         this.env = env;
         this.observationSpace = env.observationSpace;
         this.actionSpace = env.actionSpace;
@@ -26,6 +27,7 @@ export abstract class BaseAlgorithm<ObsType extends tf.Tensor, ActType extends t
 
         this.lastObs = null;
 
+        this.verbose = verbose;
         this.numTimesteps = 0;
         this.numTimestepsAtStart = 0;
         this.startTime = Date.now();

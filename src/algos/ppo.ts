@@ -35,10 +35,10 @@ export class PPO<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> 
     private normalizeadvantage: boolean;
     private target_kl: number | undefined;
 
-    constructor(env: gym.Env<ObsType, ActType>, hyperParameters: Partial<PPOHyperParameters> = {}, policyParameters: Partial<ActorCriticParams> = {}) {
+    constructor(env: gym.Env<ObsType, ActType>, hyperParameters: Partial<PPOHyperParameters> = {}, policyParameters: Partial<ActorCriticParams> = {}, verbose = false) {
         const fHyperParameters = Object.assign({}, DEFAULT_HYPER_PARAMETERS, hyperParameters) as PPOHyperParameters;
         const fPolicyParameters = Object.assign({}, DEFAULT_POLICY_PARAMETERS, policyParameters) as ActorCriticParams;
-        super(env, fHyperParameters, fPolicyParameters);
+        super(env, fHyperParameters, fPolicyParameters, verbose);
         this.clipRange = fHyperParameters.clipRange;
         this.normalizeadvantage = fHyperParameters.normalizeadvantage;
         this.batchSize = fHyperParameters.batchSize;
