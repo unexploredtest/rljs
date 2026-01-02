@@ -49,7 +49,7 @@ export class ActorCriticPolicy<ObsType extends tf.Tensor, ActType extends tf.Ten
         if(actionSpace instanceof gym.spaces.Discrete) {
             this.actionDist = new CategoricalDistribution();
         } else if(this.actionSpace instanceof gym.spaces.Box) {
-            const size = actionSpace.shape.reduce((accumulator, currentValue) => accumulator * currentValue, 1);
+            const size = actionSpace.shape.reduce((accumulator: number, currentValue: number) => accumulator * currentValue, 1);
             this.actionDist = new DiagGaussianDistribution(size, this.logStdInit);
             (this.actionDist as DiagGaussianDistribution).makeLogStd();
         } else if(this.actionSpace instanceof gym.spaces.MultiDiscrete) {
@@ -164,7 +164,7 @@ export class ActorCriticPolicy<ObsType extends tf.Tensor, ActType extends tf.Ten
                 units: this.actionSpace.n, 
             }).apply(l) as tf.SymbolicTensor;
         } else if(this.actionSpace instanceof gym.spaces.Box) {
-            const size = this.actionSpace.shape.reduce((accumulator, currentValue) => accumulator * currentValue, 1);
+            const size = this.actionSpace.shape.reduce((accumulator: number, currentValue: number) => accumulator * currentValue, 1);
             l = tf.layers.dense({
                 units: size 
             }).apply(l) as tf.SymbolicTensor;
