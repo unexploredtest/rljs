@@ -1,5 +1,5 @@
 import * as tf from "@tensorflow/tfjs";
-import * as gym from "gymjs";
+import * as gym from "@unexploredtest/gymjs";
 
 import { OnPolicyAlgorithm } from "../common/on_policy_algorithm";
 import { clipGradNorm, explainedVariance } from "../common/utils";

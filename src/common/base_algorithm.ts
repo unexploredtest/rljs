@@ -1,5 +1,5 @@
 import * as tf from "@tensorflow/tfjs";
-import * as gym from "gymjs";
+import * as gym from "@unexploredtest/gymjs";
 
 import { BasePolicy, ActorCriticPolicy } from "./policies";
 import { BaseHyperParams } from "./type_aliases";

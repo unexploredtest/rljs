@@ -1,5 +1,5 @@
 import * as tf from "@tensorflow/tfjs";
-import * as gym from "gymjs";
+import * as gym from "@unexploredtest/gymjs";
 import { BaseAlgorithm } from "./base_algorithm";
 import { Logger } from "./logger";
 
