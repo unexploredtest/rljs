@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "tsdown --watch",
     "build": "tsdown",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "type": "module",
   "main": "./dist/index.js",
@@ -23,6 +25,7 @@
   "packageManager": "pnpm@10.7.0",
   "devDependencies": {
     "@types/node": "^24.10.0",
+    "prettier": "^3.7.4",
     "ts-loader": "^9.5.4",
     "tsdown": "^0.16.1",
     "typescript": "^5.9.3"
