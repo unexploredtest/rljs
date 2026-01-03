@@ -1,13 +1,13 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 
-import { BaseAlgorithm } from './base_algorithm.js';
-import { RolloutBuffer } from './buffers.js';
-import { ActorCriticPolicy } from './policies.js';
-import { OnPolicyHyperParams } from './type_aliases.js';
-import { ActorCriticParams } from './type_aliases.js';
-import { clipTensor } from './utils.js';
-import { BaseCallback } from './callbacks.js';
+import { BaseAlgorithm } from './base_algorithm';
+import { RolloutBuffer } from './buffers';
+import { ActorCriticPolicy } from './policies';
+import { OnPolicyHyperParams } from './type_aliases';
+import { ActorCriticParams } from './type_aliases';
+import { clipTensor } from './utils';
+import { BaseCallback } from './callbacks';
 
 
 export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> extends BaseAlgorithm<ObsType, ActType> {

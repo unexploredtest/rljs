@@ -1,8 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
 
-// DiagGaussianDistribution
-// CategoricalDistribution
-
 export abstract class Distribution {
     abstract probaDistribution(...args: tf.Tensor[]): void;
     abstract logProb(actions: tf.Tensor): tf.Tensor;

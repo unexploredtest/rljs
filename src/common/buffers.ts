@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 
-import { RolloutBufferResult, RolloutBufferSamples } from './type_aliases.js';
+import { RolloutBufferResult, RolloutBufferSamples } from './type_aliases';
 
 abstract class BaseBuffer {
     protected bufferSize: number;

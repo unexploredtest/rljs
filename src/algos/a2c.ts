@@ -1,10 +1,10 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 
-import { OnPolicyAlgorithm } from '../common/on_policy_algorithm.js';
-import { clipGradNorm, explainedVariance } from '../common/utils.js';
-import { A2CHyperParameters, ActorCriticParams, RolloutBufferResult } from '../common/type_aliases.js';
-import { BaseCallback } from '../common/callbacks.js';
+import { OnPolicyAlgorithm } from '../common/on_policy_algorithm';
+import { clipGradNorm, explainedVariance } from '../common/utils';
+import { A2CHyperParameters, ActorCriticParams, RolloutBufferResult } from '../common/type_aliases';
+import { BaseCallback } from '../common/callbacks';
 
 const DEFAULT_HYPER_PARAMETERS: A2CHyperParameters = {
     nSteps: 5,

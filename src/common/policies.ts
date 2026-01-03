@@ -1,8 +1,8 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 
-import { Distribution, CategoricalDistribution, DiagGaussianDistribution, MultiCategoricalDistribution } from './distributions.js';
-import { BaseModelParams, ActorCriticParams, ActivationType } from './type_aliases.js';
+import { Distribution, CategoricalDistribution, DiagGaussianDistribution, MultiCategoricalDistribution } from './distributions';
+import { BaseModelParams, ActorCriticParams, ActivationType } from './type_aliases';
 
 export abstract class baseModel<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> {
     protected observationSpace: gym.spaces.Space<ObsType>;

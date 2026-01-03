@@ -1,20 +1,39 @@
 {
   "name": "rljs",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
+    "dev": "tsdown --watch",
+    "build": "tsdown",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "packageManager": "pnpm@10.7.0",
   "devDependencies": {
+    "@types/node": "^24.10.0",
+    "ts-loader": "^9.5.4",
+    "tsdown": "^0.16.1",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
-    "gymjs": "link:/run/media/unexpectedcrash/temp_win/git/gymjs/"
+    "gymjs": "link:../../../../../../home/unexpectedcrash/.local/share/pnpm/global/5/node_modules/gymjs"
+  },
+  "pnpm": {
+    "overrides": {
+      "gymjs": "link:../../../../../../home/unexpectedcrash/.local/share/pnpm/global/5/node_modules/gymjs"
+    }
   }
 }

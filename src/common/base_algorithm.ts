@@ -1,10 +1,10 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from 'gymjs';
 
-import { BasePolicy, ActorCriticPolicy } from './policies.js';
-import { BaseHyperParams } from './type_aliases.js';
-import { Logger } from './logger.js';
-import { BaseCallback } from './callbacks.js';
+import { BasePolicy, ActorCriticPolicy } from './policies';
+import { BaseHyperParams } from './type_aliases';
+import { Logger } from './logger';
+import { BaseCallback } from './callbacks';
 
 
 export abstract class BaseAlgorithm<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> {

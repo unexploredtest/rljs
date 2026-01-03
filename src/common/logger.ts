@@ -1,16 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
 
-// export enum Level {
-//   Debug,
-//   Info,
-//   Warn,
-//   Error,
-//   Disabled
-// }
-
-// type NestedRecord = {
-//     [key: string]: number | NestedRecord;
-// }
 
 export class Logger {
     // public level: Level;
