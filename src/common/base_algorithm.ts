@@ -35,12 +35,12 @@ export abstract class BaseAlgorithm<ObsType extends tf.Tensor, ActType extends t
         this.logger = new Logger();
     }
 
-    private initCallback(maybeCallback: BaseCallback<ObsType, ActType> | null): BaseCallback<ObsType, ActType> | null {
-        maybeCallback?.initCallback(this);
+    private async initCallback(maybeCallback: BaseCallback<ObsType, ActType> | null): Promise<BaseCallback<ObsType, ActType> | null> {
+        await maybeCallback?.initCallback(this);
         return maybeCallback;
     }
 
-    protected setupLearn(totalTimesteps: number, callBack: BaseCallback<ObsType, ActType> | null, resetNumTimesteps: boolean = false): [number, BaseCallback<ObsType, ActType> | null] {
+    protected async setupLearn(totalTimesteps: number, callBack: BaseCallback<ObsType, ActType> | null, resetNumTimesteps: boolean = false): Promise<[number, BaseCallback<ObsType, ActType> | null]> {
         if(this.lastObs === null) {
             let [obs, _] = this.env.reset();
             this.lastObs = obs;
@@ -55,7 +55,7 @@ export abstract class BaseAlgorithm<ObsType extends tf.Tensor, ActType extends t
         }
 
         this.numTimestepsAtStart = this.numTimesteps;
-        const callBackFinal = this.initCallback(callBack);
+        const callBackFinal = await this.initCallback(callBack);
         return [totalTimesteps, callBackFinal];
     }
 

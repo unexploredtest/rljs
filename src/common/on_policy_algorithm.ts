@@ -49,7 +49,7 @@ export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType exten
         this.buffer.reset();
         this.lastObs;
 
-        callBack?.onRolloutStart();
+        await callBack?.onRolloutStart();
 
         while(curNSteps < this.nSteps) {
             if(this.lastObs === null || this.lastEpisodeStarts === null) {
@@ -134,9 +134,9 @@ export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType exten
     async learn(totalTimesteps: number, callBack: BaseCallback<ObsType, ActType> | null, resetNumTimesteps: boolean = false, logInterval: number | null = 1): Promise<void> {
         let iteration = 0;
 
-        const [totalTimestepsFinal, callBackFinal] = this.setupLearn(totalTimesteps, callBack, resetNumTimesteps);
+        const [totalTimestepsFinal, callBackFinal] = await this.setupLearn(totalTimesteps, callBack, resetNumTimesteps);
 
-        callBackFinal?.onTrainingStart();
+        await callBackFinal?.onTrainingStart();
 
         while(this.numTimesteps < totalTimestepsFinal) {
             const continueTraining = await this.collectRollouts(callBackFinal);
@@ -155,7 +155,7 @@ export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType exten
             // console.log("Now: " + this.numTimesteps);
         }
 
-        callBackFinal?.onTrainingEnd();
+        await callBackFinal?.onTrainingEnd();
     }
 
     dumpLogs(iteration: number = 0) {

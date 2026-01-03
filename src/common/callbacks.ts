@@ -12,74 +12,88 @@ export abstract class BaseCallback<ObsType extends tf.Tensor, ActType extends nu
 
     constructor(verbose: boolean) {
         this.model = null;
-
         this.nCalls = 0;
         this.numTimesteps = 0;
         this.verbose = verbose;
     }
 
     get env(): gym.Env<ObsType, ActType> {
-        if(this.model === null) {
+        if (this.model === null) {
             throw new Error("Model is null, can't get env. Init callback first.");
         }
-
         return this.model.env;
     }
 
     get logger(): Logger {
-        if(this.model === null) {
+        if (this.model === null) {
             throw new Error("Model is null, can't get logger. Init callback first.");
         }
-
         return this.model.logger;
     }
 
-    abstract _initCallback(): void;
+    abstract _initCallback(): void | Promise<void>;
 
-    initCallback(model: BaseAlgorithm<ObsType, ActType>): void {
+    async initCallback(model: BaseAlgorithm<ObsType, ActType>): Promise<void> {
         this.model = model;
-        this._initCallback();
+        const result = this._initCallback();
+        if (result instanceof Promise) {
+            await result;
+        }
     }
 
-    abstract _onTrainingStart(): void;
+    abstract _onTrainingStart(): void | Promise<void>;
 
-    onTrainingStart(): void {
-        if(this.model === null) {
+    async onTrainingStart(): Promise<void> {
+        if (this.model === null) {
             throw new Error("Model is null, can't start training. Init callback first.");
         }
-
         this.numTimesteps = this.model.numTimesteps;
-        this._onTrainingStart();
+        const result = this._onTrainingStart();
+        if (result instanceof Promise) {
+            await result;
+        }
     }
 
-    abstract _onRolloutStart(): void;
+    abstract _onRolloutStart(): void | Promise<void>;
 
-    onRolloutStart(): void {
-        this._onRolloutStart();
+    async onRolloutStart(): Promise<void> {
+        const result = this._onRolloutStart();
+        if (result instanceof Promise) {
+            await result;
+        }
     }
 
-    abstract _onStep(): boolean;
+    abstract _onStep(): boolean | Promise<boolean>;
 
-    onStep(): boolean {
-        if(this.model === null) {
+    async onStep(): Promise<boolean> {
+        if (this.model === null) {
             throw new Error("Model is null, can't start training. Init callback first.");
         }
 
         this.numTimesteps = this.model.numTimesteps;
         this.nCalls += 1;
-
-        return this._onStep();
+        const result = this._onStep();
+        if (result instanceof Promise) {
+            return await result;
+        }
+        return result;
     }
 
-    abstract _onTrainingEnd(): void;
+    abstract _onTrainingEnd(): void | Promise<void>;
 
-    onTrainingEnd(): void {
-        this._onTrainingEnd();
+    async onTrainingEnd(): Promise<void> {
+        const result = this._onTrainingEnd();
+        if (result instanceof Promise) {
+            await result;
+        }
     }
 
-    abstract _onRolloutEnd(): void;
+    abstract _onRolloutEnd(): void | Promise<void>;
 
-    onRolloutEnd(): void {
-        this._onRolloutEnd();
+    async onRolloutEnd(): Promise<void> {
+        const result = this._onRolloutEnd();
+        if (result instanceof Promise) {
+            await result;
+        }
     }
 }
