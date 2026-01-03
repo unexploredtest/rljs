@@ -32,11 +32,6 @@
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
-    "gymjs": "link:../../../../../../home/unexpectedcrash/.local/share/pnpm/global/5/node_modules/gymjs"
-  },
-  "pnpm": {
-    "overrides": {
-      "gymjs": "link:../../../../../../home/unexpectedcrash/.local/share/pnpm/global/5/node_modules/gymjs"
-    }
+    "@unexploredtest/gymjs": "^0.1.0"
   }
 }
