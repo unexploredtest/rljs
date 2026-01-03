@@ -4,6 +4,7 @@ import * as gym from 'gymjs';
 import { OnPolicyAlgorithm } from '../common/on_policy_algorithm.js';
 import { clipGradNorm, explainedVariance } from '../common/utils.js';
 import { PPOHyperParameters, ActorCriticParams, RolloutBufferResult } from '../common/type_aliases.js';
+import { BaseCallback } from '../common/callbacks.js';
 
 const DEFAULT_HYPER_PARAMETERS: PPOHyperParameters = {
     nSteps: 2048,
@@ -29,11 +30,11 @@ const DEFAULT_POLICY_PARAMETERS: ActorCriticParams = {
 
 
 export class PPO<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> extends OnPolicyAlgorithm<ObsType, ActType> {
-    private clipRange: number;
-    private batchSize: number;
-    private nEpochs: number;
-    private normalizeadvantage: boolean;
-    private target_kl: number | undefined;
+    public clipRange: number;
+    public batchSize: number;
+    public nEpochs: number;
+    public normalizeadvantage: boolean;
+    public target_kl: number | undefined;
 
     constructor(env: gym.Env<ObsType, ActType>, hyperParameters: Partial<PPOHyperParameters> = {}, policyParameters: Partial<ActorCriticParams> = {}, verbose = false) {
         const fHyperParameters = Object.assign({}, DEFAULT_HYPER_PARAMETERS, hyperParameters) as PPOHyperParameters;
@@ -142,5 +143,9 @@ export class PPO<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> 
         }
 
         tf.dispose(explainedVar);
+    }
+
+    async learn(totalTimesteps: number, callBack: BaseCallback<ObsType, ActType> | null, resetNumTimesteps: boolean = false, logInterval: number | null = 1): Promise<void> {
+        await super.learn(totalTimesteps, callBack, resetNumTimesteps, logInterval);
     }
 }

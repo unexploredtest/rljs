@@ -4,19 +4,20 @@ import * as gym from 'gymjs';
 import { BasePolicy, ActorCriticPolicy } from './policies.js';
 import { BaseHyperParams } from './type_aliases.js';
 import { Logger } from './logger.js';
+import { BaseCallback } from './callbacks.js';
 
 
 export abstract class BaseAlgorithm<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> {
     public env: gym.Env<ObsType, ActType>;
-    protected observationSpace: gym.spaces.Space<ObsType>;
-    protected actionSpace: gym.spaces.Space<ActType>;
-    protected numTimesteps: number;
-    protected numTimestepsAtStart: number;
+    public observationSpace: gym.spaces.Space<ObsType>;
+    public actionSpace: gym.spaces.Space<ActType>;
+    public numTimesteps: number;
+    public numTimestepsAtStart: number;
     public policy: BasePolicy<ObsType, ActType> | null;
-    protected lastObs: tf.Tensor | null;
-    protected lastEpisodeStarts: tf.Tensor | null;
-    protected logger: Logger;
-    protected startTime: number;
+    public lastObs: tf.Tensor | null;
+    public lastEpisodeStarts: tf.Tensor | null;
+    public logger: Logger;
+    public startTime: number;
     protected verbose: boolean;
     constructor(env: gym.Env<ObsType, ActType>, hyperParams: BaseHyperParams, verbose: boolean) {
         this.env = env;
@@ -34,9 +35,12 @@ export abstract class BaseAlgorithm<ObsType extends tf.Tensor, ActType extends t
         this.logger = new Logger();
     }
 
-    // abstract setupModel(): void;
+    private initCallback(maybeCallback: BaseCallback<ObsType, ActType> | null): BaseCallback<ObsType, ActType> | null {
+        maybeCallback?.initCallback(this);
+        return maybeCallback;
+    }
 
-    protected setupLearn(totalTimesteps: number, resetNumTimesteps: boolean = false): number {
+    protected setupLearn(totalTimesteps: number, callBack: BaseCallback<ObsType, ActType> | null, resetNumTimesteps: boolean = false): [number, BaseCallback<ObsType, ActType> | null] {
         if(this.lastObs === null) {
             let [obs, _] = this.env.reset();
             this.lastObs = obs;
@@ -51,11 +55,11 @@ export abstract class BaseAlgorithm<ObsType extends tf.Tensor, ActType extends t
         }
 
         this.numTimestepsAtStart = this.numTimesteps;
-
-        return totalTimesteps;
+        const callBackFinal = this.initCallback(callBack);
+        return [totalTimesteps, callBackFinal];
     }
 
-    abstract learn(totalTimesteps: number): void;
+    abstract learn(totalTimesteps: number, callBack: BaseCallback<ObsType, ActType> | null, resetNumTimesteps: boolean, logInterval: number | null): void;
 
     predict(obs: ObsType, deterministic: boolean) {
         if(this.policy === null) {

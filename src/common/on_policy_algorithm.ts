@@ -7,16 +7,17 @@ import { ActorCriticPolicy } from './policies.js';
 import { OnPolicyHyperParams } from './type_aliases.js';
 import { ActorCriticParams } from './type_aliases.js';
 import { clipTensor } from './utils.js';
+import { BaseCallback } from './callbacks.js';
 
 
 export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType extends tf.Tensor | number> extends BaseAlgorithm<ObsType, ActType> {
-    protected buffer: RolloutBuffer;
-    protected nSteps: number;
-    protected gamma: number;
-    protected gaeLmbda: number;
-    protected entCoef: number;
-    protected vfCoef: number;
-    protected maxGradNorm: number;
+    public buffer: RolloutBuffer;
+    public nSteps: number;
+    public gamma: number;
+    public gaeLmbda: number;
+    public entCoef: number;
+    public vfCoef: number;
+    public maxGradNorm: number;
     public policy: ActorCriticPolicy<ObsType, ActType>;
     private totalReward: number;
     private episodeLength: number;
@@ -39,14 +40,16 @@ export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType exten
 
     abstract train(): Promise<void>;
 
-    async collectRollouts(): Promise<boolean> {
+    async collectRollouts(callBack: BaseCallback<ObsType, ActType> | null): Promise<boolean> {
         if(this.lastObs === null || this.lastEpisodeStarts === null) {
             throw new Error("Last obs/episode start must not be null!");
         }
 
         let curNSteps = 0;
         this.buffer.reset();
-        this.lastObs
+        this.lastObs;
+
+        callBack?.onRolloutStart();
 
         while(curNSteps < this.nSteps) {
             if(this.lastObs === null || this.lastEpisodeStarts === null) {
@@ -84,9 +87,14 @@ export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType exten
             }
 
             this.numTimesteps++;
-            curNSteps++;
+
+            const continueTraining = callBack?.onStep();
+            if(callBack !== null && !continueTraining) {
+                return false;
+            }
 
             this.buffer.add(this.lastObs, actions, tf.tensor([reward]), this.lastEpisodeStarts, values, logProbs);
+            curNSteps++;
 
             // tf.dispose(this.lastObs);
             this.lastObs = obs;
@@ -115,18 +123,23 @@ export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType exten
 
         const values = this.policy.predictValues(this.lastObs);
         this.buffer.computeReturnsAndAdvantages(values, this.lastEpisodeStarts);
+
+        callBack?.onRolloutEnd();
+
         tf.dispose(values);
 
         return true;
     }
 
-    async learn(totalTimesteps: number, resetNumTimesteps: boolean = false, logInterval: number | null = 1): Promise<void> {
+    async learn(totalTimesteps: number, callBack: BaseCallback<ObsType, ActType> | null, resetNumTimesteps: boolean = false, logInterval: number | null = 1): Promise<void> {
         let iteration = 0;
 
-        totalTimesteps = this.setupLearn(totalTimesteps, resetNumTimesteps);
+        const [totalTimestepsFinal, callBackFinal] = this.setupLearn(totalTimesteps, callBack, resetNumTimesteps);
 
-        while(this.numTimesteps < totalTimesteps) {
-            const continueTraining = await this.collectRollouts();
+        callBackFinal?.onTrainingStart();
+
+        while(this.numTimesteps < totalTimestepsFinal) {
+            const continueTraining = await this.collectRollouts(callBackFinal);
 
             if(!continueTraining) {
                 break;
@@ -141,6 +154,8 @@ export abstract class OnPolicyAlgorithm<ObsType extends tf.Tensor, ActType exten
             await this.train();
             // console.log("Now: " + this.numTimesteps);
         }
+
+        callBackFinal?.onTrainingEnd();
     }
 
     dumpLogs(iteration: number = 0) {
