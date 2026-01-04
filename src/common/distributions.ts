@@ -1,4 +1,4 @@
-import * as tf from "@tensorflow/tfjs";
+import * as tf from '@tensorflow/tfjs';
 
 export abstract class Distribution {
   abstract probaDistribution(...args: tf.Tensor[]): void;
@@ -32,7 +32,7 @@ export class CategoricalDistribution extends Distribution {
     // https://github.com/zemlyansky/ppo-tfjs/blob/main/ppo.js
     return tf.tidy(() => {
       if (this.actionLogits === null) {
-        throw new Error("Something went wrong!");
+        throw new Error('Something went wrong!');
       }
       const numActions =
         this.actionLogits.shape[this.actionLogits.shape.length - 1];
@@ -40,7 +40,7 @@ export class CategoricalDistribution extends Distribution {
       actions = actions.reshape([-1]);
       return tf.sum(
         tf.mul(tf.oneHot(actions, numActions), logprobabilitiesAll),
-        logprobabilitiesAll.shape.length - 1,
+        logprobabilitiesAll.shape.length - 1
       );
     });
   }
@@ -48,10 +48,10 @@ export class CategoricalDistribution extends Distribution {
   entropy(): tf.Tensor {
     return tf.tidy(() => {
       if (this.actionLogits === null) {
-        throw new Error("Something went wrong!");
+        throw new Error('Something went wrong!');
       }
       const logprobabilitiesAll = tf.logSoftmax(
-        this.actionLogits.add(tf.scalar(1e-10)),
+        this.actionLogits.add(tf.scalar(1e-10))
       );
       return logprobabilitiesAll.sum(-1);
     });
@@ -60,7 +60,7 @@ export class CategoricalDistribution extends Distribution {
   sample(): tf.Tensor {
     return tf.tidy(() => {
       if (this.actionLogits === null) {
-        throw new Error("Something went wrong!");
+        throw new Error('Something went wrong!');
       }
       let preds = this.actionLogits;
       let action = tf.multinomial(preds as tf.Tensor2D, 1);
@@ -71,7 +71,7 @@ export class CategoricalDistribution extends Distribution {
 
   mode(): tf.Tensor {
     if (this.actionLogits === null) {
-      throw new Error("Something went wrong!");
+      throw new Error('Something went wrong!');
     }
     return tf.argMax(this.actionLogits, 1);
   }
@@ -104,7 +104,7 @@ export class MultiCategoricalDistribution extends Distribution {
           actions
             .split(size, 1)
             .map((split, index) => this.catDists[index].logProb(split)),
-          1,
+          1
         )
         .sum(1);
     });
@@ -115,7 +115,7 @@ export class MultiCategoricalDistribution extends Distribution {
       return tf
         .stack(
           this.catDists.map((catDis) => catDis.entropy()),
-          1,
+          1
         )
         .sum(1);
     });
@@ -125,7 +125,7 @@ export class MultiCategoricalDistribution extends Distribution {
     return tf.tidy(() => {
       return tf.stack(
         this.catDists.map((catDis) => catDis.sample()),
-        1,
+        1
       );
     });
   }
@@ -134,7 +134,7 @@ export class MultiCategoricalDistribution extends Distribution {
     return tf.tidy(() => {
       return tf.stack(
         this.catDists.map((catDis) => catDis.mode()),
-        1,
+        1
       );
     });
   }
@@ -161,7 +161,7 @@ export class DiagGaussianDistribution extends Distribution {
     this.logStd = tf.variable(
       tf.fill([this.actionDim], this.logStdInit),
       true,
-      "logStd",
+      'logStd'
     );
   }
 
@@ -179,13 +179,13 @@ export class DiagGaussianDistribution extends Distribution {
         this.meanActions === null ||
         this.logStd === null
       ) {
-        throw Error("Values logStd, meanActions and logStd must not be null.");
+        throw Error('Values logStd, meanActions and logStd must not be null.');
       }
 
       const variance = tf.exp(this.logStd).square();
       const result = tf.sub(
         tf.div(tf.neg(actions.sub(this.meanActions).square()), variance.mul(2)),
-        this.logStd.add(Math.log(Math.sqrt(2.0 * Math.PI))),
+        this.logStd.add(Math.log(Math.sqrt(2.0 * Math.PI)))
       );
 
       return tf.sum(result, 1);
@@ -200,12 +200,12 @@ export class DiagGaussianDistribution extends Distribution {
   entropy(): tf.Tensor {
     return tf.tidy(() => {
       if (this.meanActions === null || this.logStd === null) {
-        throw new Error("Something went wrong!");
+        throw new Error('Something went wrong!');
       }
 
       const entropy = tf.add(
         this.logStd,
-        tf.scalar(0.5 + 0.5 * Math.log(2 * Math.PI)),
+        tf.scalar(0.5 + 0.5 * Math.log(2 * Math.PI))
       );
 
       return sumIndependentDims(entropy);
@@ -215,12 +215,12 @@ export class DiagGaussianDistribution extends Distribution {
   sample(): tf.Tensor {
     return tf.tidy(() => {
       if (this.meanActions === null || this.logStd === null) {
-        throw new Error("Something went wrong!");
+        throw new Error('Something went wrong!');
       }
 
       const action = tf.add(
         tf.mul(tf.randomNormal([this.actionDim], 0, 1), tf.exp(this.logStd)),
-        this.meanActions,
+        this.meanActions
       );
       return action;
     });
@@ -228,7 +228,7 @@ export class DiagGaussianDistribution extends Distribution {
 
   mode(): tf.Tensor {
     if (this.meanActions === null) {
-      throw new Error("Something went wrong!");
+      throw new Error('Something went wrong!');
     }
     return this.meanActions;
   }

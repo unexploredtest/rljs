@@ -1,14 +1,14 @@
-import * as tf from "@tensorflow/tfjs";
-import * as gym from "@unexploredtest/gymjs";
+import * as tf from '@tensorflow/tfjs';
+import * as gym from '@unexploredtest/gymjs';
 
-import { OnPolicyAlgorithm } from "../common/on_policy_algorithm";
-import { clipGradNorm, explainedVariance } from "../common/utils";
+import { OnPolicyAlgorithm } from '../common/on_policy_algorithm';
+import { clipGradNorm, explainedVariance } from '../common/utils';
 import {
   A2CHyperParameters,
   ActorCriticParams,
   RolloutBufferResult,
-} from "../common/type_aliases";
-import { BaseCallback } from "../common/callbacks";
+} from '../common/type_aliases';
+import { BaseCallback } from '../common/callbacks';
 
 const DEFAULT_HYPER_PARAMETERS: A2CHyperParameters = {
   nSteps: 5,
@@ -22,7 +22,7 @@ const DEFAULT_HYPER_PARAMETERS: A2CHyperParameters = {
 
 const DEFAULT_POLICY_PARAMETERS: ActorCriticParams = {
   lr: 3e-4,
-  activation: "relu",
+  activation: 'relu',
   optim: undefined,
   policyNet: [64, 64],
   valueNet: [64, 64],
@@ -39,17 +39,17 @@ export class A2C<
     env: gym.Env<ObsType, ActType>,
     hyperParameters: Partial<A2CHyperParameters> = {},
     policyParameters: Partial<ActorCriticParams> = {},
-    verbose = false,
+    verbose = false
   ) {
     const fHyperParameters = Object.assign(
       {},
       DEFAULT_HYPER_PARAMETERS,
-      hyperParameters,
+      hyperParameters
     ) as A2CHyperParameters;
     const fPolicyParameters = Object.assign(
       {},
       DEFAULT_POLICY_PARAMETERS,
-      policyParameters,
+      policyParameters
     ) as ActorCriticParams;
     super(env, fHyperParameters, fPolicyParameters, verbose);
     this.normalizeadvantage = fHyperParameters.normalizeadvantage;
@@ -76,7 +76,7 @@ export class A2C<
       const optFunc = () => {
         const [values, logProb, entropy] = this.policy.evaluateActions(
           observations,
-          actions,
+          actions
         );
 
         const policyLoss = tf.neg(advantages.mul(logProb)).mean();
@@ -100,35 +100,35 @@ export class A2C<
         const result = this.policy.optim.computeGradients(optFunc);
         const normedGrad: tf.NamedTensorMap = clipGradNorm(
           result.grads,
-          this.maxGradNorm,
+          this.maxGradNorm
         );
         this.policy.optim.applyGradients(normedGrad);
       });
     }
 
     const explainedVar = explainedVariance(
-      (this.buffer.stackedTensors as RolloutBufferResult)["values"],
-      this.buffer.returns,
+      (this.buffer.stackedTensors as RolloutBufferResult)['values'],
+      this.buffer.returns
     );
 
     this.logger.record(
-      "Entropy Loss",
-      tf.util.sum(entropyLosses) / entropyLosses.length,
+      'Entropy Loss',
+      tf.util.sum(entropyLosses) / entropyLosses.length
     );
     this.logger.record(
-      "Policy Gradient Loss",
-      tf.util.sum(pgLosses) / pgLosses.length,
+      'Policy Gradient Loss',
+      tf.util.sum(pgLosses) / pgLosses.length
     );
     this.logger.record(
-      "Value Loss",
-      tf.util.sum(valueLosses) / valueLosses.length,
+      'Value Loss',
+      tf.util.sum(valueLosses) / valueLosses.length
     );
-    this.logger.record("Loss", lossValue);
-    this.logger.record("Explained Variance", explainedVar.dataSync()[0]);
+    this.logger.record('Loss', lossValue);
+    this.logger.record('Explained Variance', explainedVar.dataSync()[0]);
 
     const logStd = this.policy.getLogStd();
     if (logStd) {
-      this.logger.record("Log STD", tf.exp(logStd).mean().dataSync()[0]);
+      this.logger.record('Log STD', tf.exp(logStd).mean().dataSync()[0]);
     }
 
     tf.dispose(explainedVar);
@@ -138,7 +138,7 @@ export class A2C<
     totalTimesteps: number,
     callBack: BaseCallback<ObsType, ActType> | null,
     resetNumTimesteps: boolean = false,
-    logInterval: number | null = 100,
+    logInterval: number | null = 100
   ): Promise<void> {
     await super.learn(totalTimesteps, callBack, resetNumTimesteps, logInterval);
   }

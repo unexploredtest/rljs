@@ -1,10 +1,10 @@
-import * as tf from "@tensorflow/tfjs";
-import * as gym from "@unexploredtest/gymjs";
+import * as tf from '@tensorflow/tfjs';
+import * as gym from '@unexploredtest/gymjs';
 
-import { BasePolicy, ActorCriticPolicy } from "./policies";
-import { BaseHyperParams } from "./type_aliases";
-import { Logger } from "./logger";
-import { BaseCallback } from "./callbacks";
+import { BasePolicy, ActorCriticPolicy } from './policies';
+import { BaseHyperParams } from './type_aliases';
+import { Logger } from './logger';
+import { BaseCallback } from './callbacks';
 
 export abstract class BaseAlgorithm<
   ObsType extends tf.Tensor,
@@ -24,7 +24,7 @@ export abstract class BaseAlgorithm<
   constructor(
     env: gym.Env<ObsType, ActType>,
     hyperParams: BaseHyperParams,
-    verbose: boolean,
+    verbose: boolean
   ) {
     this.env = env;
     this.observationSpace = env.observationSpace;
@@ -42,7 +42,7 @@ export abstract class BaseAlgorithm<
   }
 
   private async initCallback(
-    maybeCallback: BaseCallback<ObsType, ActType> | null,
+    maybeCallback: BaseCallback<ObsType, ActType> | null
   ): Promise<BaseCallback<ObsType, ActType> | null> {
     await maybeCallback?.initCallback(this);
     return maybeCallback;
@@ -51,14 +51,14 @@ export abstract class BaseAlgorithm<
   protected async setupLearn(
     totalTimesteps: number,
     callBack: BaseCallback<ObsType, ActType> | null,
-    resetNumTimesteps: boolean = false,
+    resetNumTimesteps: boolean = false
   ): Promise<[number, BaseCallback<ObsType, ActType> | null]> {
     if (this.lastObs === null) {
       let [obs, _] = this.env.reset();
       this.lastObs = obs;
     }
 
-    this.lastEpisodeStarts = tf.tensor([true], [1], "float32");
+    this.lastEpisodeStarts = tf.tensor([true], [1], 'float32');
 
     if (resetNumTimesteps) {
       this.numTimesteps = 0;
@@ -75,12 +75,12 @@ export abstract class BaseAlgorithm<
     totalTimesteps: number,
     callBack: BaseCallback<ObsType, ActType> | null,
     resetNumTimesteps: boolean,
-    logInterval: number | null,
+    logInterval: number | null
   ): void;
 
   predict(obs: ObsType, deterministic: boolean) {
     if (this.policy === null) {
-      throw new Error("Policy not defined!");
+      throw new Error('Policy not defined!');
     }
     return this.policy.predict(obs, deterministic);
   }

@@ -1,14 +1,14 @@
-import * as tf from "@tensorflow/tfjs";
-import * as gym from "@unexploredtest/gymjs";
+import * as tf from '@tensorflow/tfjs';
+import * as gym from '@unexploredtest/gymjs';
 
-import { OnPolicyAlgorithm } from "../common/on_policy_algorithm";
-import { clipGradNorm, explainedVariance } from "../common/utils";
+import { OnPolicyAlgorithm } from '../common/on_policy_algorithm';
+import { clipGradNorm, explainedVariance } from '../common/utils';
 import {
   PPOHyperParameters,
   ActorCriticParams,
   RolloutBufferResult,
-} from "../common/type_aliases";
-import { BaseCallback } from "../common/callbacks";
+} from '../common/type_aliases';
+import { BaseCallback } from '../common/callbacks';
 
 const DEFAULT_HYPER_PARAMETERS: PPOHyperParameters = {
   nSteps: 2048,
@@ -25,7 +25,7 @@ const DEFAULT_HYPER_PARAMETERS: PPOHyperParameters = {
 
 const DEFAULT_POLICY_PARAMETERS: ActorCriticParams = {
   lr: 3e-4,
-  activation: "relu",
+  activation: 'relu',
   optim: undefined,
   policyNet: [64, 64],
   valueNet: [64, 64],
@@ -46,17 +46,17 @@ export class PPO<
     env: gym.Env<ObsType, ActType>,
     hyperParameters: Partial<PPOHyperParameters> = {},
     policyParameters: Partial<ActorCriticParams> = {},
-    verbose = false,
+    verbose = false
   ) {
     const fHyperParameters = Object.assign(
       {},
       DEFAULT_HYPER_PARAMETERS,
-      hyperParameters,
+      hyperParameters
     ) as PPOHyperParameters;
     const fPolicyParameters = Object.assign(
       {},
       DEFAULT_POLICY_PARAMETERS,
-      policyParameters,
+      policyParameters
     ) as ActorCriticParams;
     super(env, fHyperParameters, fPolicyParameters, verbose);
     this.clipRange = fHyperParameters.clipRange;
@@ -66,7 +66,7 @@ export class PPO<
     this.target_kl = fHyperParameters.target_kl;
 
     if (this.normalizeadvantage && this.batchSize === 1) {
-      throw new Error("Batch size must be greater than 1");
+      throw new Error('Batch size must be greater than 1');
     }
   }
 
@@ -105,13 +105,13 @@ export class PPO<
         const optFunc = () => {
           let [values, logProb, entropy] = this.policy.evaluateActions(
             observations,
-            actions,
+            actions
           );
           values = values.flatten();
           let ratio = tf.exp(logProb.sub(oldLogProb));
           let policyLoss1 = advantages.mul(ratio);
           let policyLoss2 = advantages.mul(
-            tf.clipByValue(ratio, 1 - this.clipRange, 1 + this.clipRange),
+            tf.clipByValue(ratio, 1 - this.clipRange, 1 + this.clipRange)
           );
           let policyLoss = tf.neg(tf.minimum(policyLoss1, policyLoss2)).mean();
           pgLosses.push(policyLoss.asScalar().dataSync()[0]);
@@ -119,7 +119,7 @@ export class PPO<
           const clipFraction = tf.mean(
             tf
               .scalar(this.clipRange)
-              .less(tf.abs(ratio.sub(tf.scalar(1))).toFloat()),
+              .less(tf.abs(ratio.sub(tf.scalar(1))).toFloat())
           );
           clipFractions.push(clipFraction.asScalar().dataSync()[0]);
 
@@ -136,7 +136,7 @@ export class PPO<
 
           const logRatio = logProb.sub(oldLogProb);
           const approxKlDivScalar = tf.mean(
-            tf.exp(logRatio).sub(tf.scalar(1)).sub(logRatio),
+            tf.exp(logRatio).sub(tf.scalar(1)).sub(logRatio)
           );
           approxKlDiv = approxKlDivScalar.asScalar().dataSync()[0];
           approxKlDivs.push(approxKlDiv);
@@ -148,7 +148,7 @@ export class PPO<
           const result = this.policy.optim.computeGradients(optFunc);
           let normedGrad: tf.NamedTensorMap = clipGradNorm(
             result.grads,
-            this.maxGradNorm,
+            this.maxGradNorm
           );
           this.policy.optim.applyGradients(normedGrad);
 
@@ -173,36 +173,36 @@ export class PPO<
     }
 
     const explainedVar = explainedVariance(
-      (this.buffer.stackedTensors as RolloutBufferResult)["values"],
-      this.buffer.returns,
+      (this.buffer.stackedTensors as RolloutBufferResult)['values'],
+      this.buffer.returns
     );
 
     this.logger.record(
-      "Entropy Loss",
-      tf.util.sum(entropyLosses) / entropyLosses.length,
+      'Entropy Loss',
+      tf.util.sum(entropyLosses) / entropyLosses.length
     );
     this.logger.record(
-      "Policy Gradient Loss",
-      tf.util.sum(pgLosses) / pgLosses.length,
+      'Policy Gradient Loss',
+      tf.util.sum(pgLosses) / pgLosses.length
     );
     this.logger.record(
-      "Value Loss",
-      tf.util.sum(valueLosses) / valueLosses.length,
+      'Value Loss',
+      tf.util.sum(valueLosses) / valueLosses.length
     );
     this.logger.record(
-      "Approximate KL",
-      tf.util.sum(approxKlDivs) / approxKlDivs.length,
+      'Approximate KL',
+      tf.util.sum(approxKlDivs) / approxKlDivs.length
     );
     this.logger.record(
-      "Clip Fraction",
-      tf.util.sum(clipFractions) / clipFractions.length,
+      'Clip Fraction',
+      tf.util.sum(clipFractions) / clipFractions.length
     );
-    this.logger.record("Loss", lossValue);
-    this.logger.record("Explained Variance", explainedVar.dataSync()[0]);
+    this.logger.record('Loss', lossValue);
+    this.logger.record('Explained Variance', explainedVar.dataSync()[0]);
 
     const logStd = this.policy.getLogStd();
     if (logStd) {
-      this.logger.record("Log STD", tf.exp(logStd).mean().dataSync()[0]);
+      this.logger.record('Log STD', tf.exp(logStd).mean().dataSync()[0]);
     }
 
     tf.dispose(explainedVar);
@@ -212,7 +212,7 @@ export class PPO<
     totalTimesteps: number,
     callBack: BaseCallback<ObsType, ActType> | null,
     resetNumTimesteps: boolean = false,
-    logInterval: number | null = 1,
+    logInterval: number | null = 1
   ): Promise<void> {
     await super.learn(totalTimesteps, callBack, resetNumTimesteps, logInterval);
   }

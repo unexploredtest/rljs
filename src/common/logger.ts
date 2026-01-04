@@ -1,4 +1,4 @@
-import * as tf from "@tensorflow/tfjs";
+import * as tf from '@tensorflow/tfjs';
 
 export class Logger {
   // public level: Level;
@@ -25,7 +25,7 @@ export class Logger {
   }
 
   dump(step: number) {
-    this.nameToValue["step"] = step;
+    this.nameToValue['step'] = step;
     const nameToValue = this.nameToValue;
     this.nameToValue = {};
     this.nameToCount = {};

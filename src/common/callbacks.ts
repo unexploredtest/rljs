@@ -1,7 +1,7 @@
-import * as tf from "@tensorflow/tfjs";
-import * as gym from "@unexploredtest/gymjs";
-import { BaseAlgorithm } from "./base_algorithm";
-import { Logger } from "./logger";
+import * as tf from '@tensorflow/tfjs';
+import * as gym from '@unexploredtest/gymjs';
+import { BaseAlgorithm } from './base_algorithm';
+import { Logger } from './logger';
 
 export abstract class BaseCallback<
   ObsType extends tf.Tensor,
@@ -48,7 +48,7 @@ export abstract class BaseCallback<
   async onTrainingStart(): Promise<void> {
     if (this.model === null) {
       throw new Error(
-        "Model is null, can't start training. Init callback first.",
+        "Model is null, can't start training. Init callback first."
       );
     }
     this.numTimesteps = this.model.numTimesteps;
@@ -72,7 +72,7 @@ export abstract class BaseCallback<
   async onStep(): Promise<boolean> {
     if (this.model === null) {
       throw new Error(
-        "Model is null, can't start training. Init callback first.",
+        "Model is null, can't start training. Init callback first."
       );
     }
 

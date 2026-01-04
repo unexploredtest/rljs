@@ -1,17 +1,17 @@
-import * as tf from "@tensorflow/tfjs";
-import * as gym from "@unexploredtest/gymjs";
+import * as tf from '@tensorflow/tfjs';
+import * as gym from '@unexploredtest/gymjs';
 
 import {
   Distribution,
   CategoricalDistribution,
   DiagGaussianDistribution,
   MultiCategoricalDistribution,
-} from "./distributions";
+} from './distributions';
 import {
   BaseModelParams,
   ActorCriticParams,
   ActivationType,
-} from "./type_aliases";
+} from './type_aliases';
 
 export abstract class baseModel<
   ObsType extends tf.Tensor,
@@ -26,7 +26,7 @@ export abstract class baseModel<
   constructor(
     observationSpace: gym.spaces.Space<ObsType>,
     actionSpace: gym.spaces.Space<ActType>,
-    modelParams: BaseModelParams,
+    modelParams: BaseModelParams
   ) {
     this.observationSpace = observationSpace;
     this.actionSpace = actionSpace;
@@ -66,7 +66,7 @@ export class ActorCriticPolicy<
   constructor(
     observationSpace: gym.spaces.Space<ObsType>,
     actionSpace: gym.spaces.Space<ActType>,
-    modelParams: ActorCriticParams,
+    modelParams: ActorCriticParams
   ) {
     super(observationSpace, actionSpace, modelParams);
     this.lr = modelParams.lr;
@@ -77,22 +77,22 @@ export class ActorCriticPolicy<
       const size = actionSpace.shape.reduce(
         (accumulator: number, currentValue: number) =>
           accumulator * currentValue,
-        1,
+        1
       );
       this.actionDist = new DiagGaussianDistribution(size, this.logStdInit);
       (this.actionDist as DiagGaussianDistribution).makeLogStd();
     } else if (this.actionSpace instanceof gym.spaces.MultiDiscrete) {
       this.actionDist = new MultiCategoricalDistribution(
-        Array.from(this.actionSpace.nVec.reshape([-1]).dataSync()),
+        Array.from(this.actionSpace.nVec.reshape([-1]).dataSync())
       );
     } else if (this.actionSpace instanceof gym.spaces.MultiBinary) {
       // We treat multibinary the same as multidiscrete
       const nVec = tf.ones(this.actionSpace.shape).mul(2);
       this.actionDist = new MultiCategoricalDistribution(
-        Array.from(nVec.reshape([-1]).dataSync()),
+        Array.from(nVec.reshape([-1]).dataSync())
       );
     } else {
-      throw new Error("Not supported!");
+      throw new Error('Not supported!');
     }
 
     this.policyModel = this.createActor(modelParams.policyNet);
@@ -101,7 +101,7 @@ export class ActorCriticPolicy<
 
   forward(
     obs: tf.Tensor,
-    deterministic: boolean,
+    deterministic: boolean
   ): [tf.Tensor, tf.Tensor, tf.Tensor] {
     return tf.tidy(() => {
       if (obs.shape.length === 1) {
@@ -193,7 +193,7 @@ export class ActorCriticPolicy<
       l = tf.layers
         .dense({
           units,
-          activation: "relu",
+          activation: 'relu',
         })
         .apply(l) as tf.SymbolicTensor;
     });
@@ -207,7 +207,7 @@ export class ActorCriticPolicy<
       const size = this.actionSpace.shape.reduce(
         (accumulator: number, currentValue: number) =>
           accumulator * currentValue,
-        1,
+        1
       );
       l = tf.layers
         .dense({
@@ -231,7 +231,7 @@ export class ActorCriticPolicy<
         })
         .apply(l) as tf.SymbolicTensor;
     } else {
-      throw new Error("Unknown action space");
+      throw new Error('Unknown action space');
     }
     return tf.model({ inputs: input, outputs: l });
   }
@@ -243,14 +243,14 @@ export class ActorCriticPolicy<
       l = tf.layers
         .dense({
           units: units,
-          activation: "relu",
+          activation: 'relu',
         })
         .apply(l) as tf.SymbolicTensor;
     });
     l = tf.layers
       .dense({
         units: 1,
-        activation: "linear",
+        activation: 'linear',
       })
       .apply(l) as tf.SymbolicTensor;
     return tf.model({ inputs: input, outputs: l });

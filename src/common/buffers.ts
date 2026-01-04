@@ -1,7 +1,7 @@
-import * as tf from "@tensorflow/tfjs";
-import * as gym from "gymjs";
+import * as tf from '@tensorflow/tfjs';
+import * as gym from '@unexploredtest/gymjs';
 
-import { RolloutBufferResult, RolloutBufferSamples } from "./type_aliases";
+import { RolloutBufferResult, RolloutBufferSamples } from './type_aliases';
 
 abstract class BaseBuffer {
   protected bufferSize: number;
@@ -14,7 +14,7 @@ abstract class BaseBuffer {
   constructor(
     bufferSize: number,
     observationShape: number[],
-    actionShape: number[],
+    actionShape: number[]
   ) {
     this.bufferSize = bufferSize;
     this.observationShape = observationShape;
@@ -75,7 +75,7 @@ export class RolloutBuffer extends BaseBuffer {
     observationShape: number[],
     actionShape: number[],
     gaeLambda: number,
-    gamma: number,
+    gamma: number
   ) {
     super(bufferSize, observationShape, actionShape);
     this.gaeLambda = gaeLambda;
@@ -126,7 +126,7 @@ export class RolloutBuffer extends BaseBuffer {
     reward: tf.Tensor,
     episodeStart: tf.Tensor,
     value: tf.Tensor,
-    logProb: tf.Tensor,
+    logProb: tf.Tensor
   ): void {
     this.observations.push(obs);
     this.actions.push(action);
@@ -144,7 +144,7 @@ export class RolloutBuffer extends BaseBuffer {
   *get(batchSize: number): Generator<RolloutBufferSamples> {
     let indicesArray = Array.from(Array(this.pos).keys());
     tf.util.shuffle(indicesArray);
-    const indices = tf.tensor(indicesArray, [this.pos], "int32");
+    const indices = tf.tensor(indicesArray, [this.pos], 'int32');
     for (let startIdx = 0; startIdx < this.pos; startIdx += batchSize) {
       let endIndex = startIdx + batchSize;
       if (endIndex >= this.pos) {
@@ -152,7 +152,7 @@ export class RolloutBuffer extends BaseBuffer {
       }
 
       yield this.getSamples(
-        indices.gather(tf.range(startIdx, endIndex, 1, "int32")),
+        indices.gather(tf.range(startIdx, endIndex, 1, 'int32'))
       );
     }
     tf.dispose(indices);
@@ -166,16 +166,16 @@ export class RolloutBuffer extends BaseBuffer {
     return tf.tidy(() => {
       if (this.stackedTensors === null) {
         throw new Error(
-          "Stacked tensors shouldn't be null, something must have gone wrong.",
+          "Stacked tensors shouldn't be null, something must have gone wrong."
         );
       }
 
       const data = [
-        this.stackedTensors["observations"].gather(indices),
-        this.stackedTensors["actions"].gather(indices),
-        this.stackedTensors["values"].gather(indices),
-        this.stackedTensors["logProb"].gather(indices),
-        this.stackedTensors["advantages"].gather(indices),
+        this.stackedTensors['observations'].gather(indices),
+        this.stackedTensors['actions'].gather(indices),
+        this.stackedTensors['values'].gather(indices),
+        this.stackedTensors['logProb'].gather(indices),
+        this.stackedTensors['advantages'].gather(indices),
         this.returns.gather(indices),
       ] as RolloutBufferSamples;
 
@@ -207,7 +207,7 @@ export class RolloutBuffer extends BaseBuffer {
       let nextNonTerminal: tf.Tensor;
       let nextValues: tf.Tensor;
       if (step == this.bufferSize - 1) {
-        nextNonTerminal = tf.scalar(1).sub(dones.asType("float32"));
+        nextNonTerminal = tf.scalar(1).sub(dones.asType('float32'));
         nextValues = lastValues;
       } else {
         nextNonTerminal = tf.scalar(1).sub(this.episodeStarts[step + 1]);
@@ -222,7 +222,7 @@ export class RolloutBuffer extends BaseBuffer {
         tf
           .scalar(this.gamma * this.gaeLambda)
           .mul(nextNonTerminal)
-          .mul(lastGaeLam),
+          .mul(lastGaeLam)
       );
       this.advantages[step] = lastGaeLam;
       tf.dispose(nextNonTerminal);

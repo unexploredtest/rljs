@@ -1,13 +1,13 @@
-import * as tf from "@tensorflow/tfjs";
-import * as gym from "@unexploredtest/gymjs";
+import * as tf from '@tensorflow/tfjs';
+import * as gym from '@unexploredtest/gymjs';
 
-import { BaseAlgorithm } from "./base_algorithm";
-import { RolloutBuffer } from "./buffers";
-import { ActorCriticPolicy } from "./policies";
-import { OnPolicyHyperParams } from "./type_aliases";
-import { ActorCriticParams } from "./type_aliases";
-import { clipTensor } from "./utils";
-import { BaseCallback } from "./callbacks";
+import { BaseAlgorithm } from './base_algorithm';
+import { RolloutBuffer } from './buffers';
+import { ActorCriticPolicy } from './policies';
+import { OnPolicyHyperParams } from './type_aliases';
+import { ActorCriticParams } from './type_aliases';
+import { clipTensor } from './utils';
+import { BaseCallback } from './callbacks';
 
 export abstract class OnPolicyAlgorithm<
   ObsType extends tf.Tensor,
@@ -28,7 +28,7 @@ export abstract class OnPolicyAlgorithm<
     env: gym.Env<ObsType, ActType>,
     hyperParams: OnPolicyHyperParams,
     policyParams: ActorCriticParams,
-    verbose: boolean,
+    verbose: boolean
   ) {
     super(env, hyperParams, verbose);
     this.nSteps = hyperParams.nSteps;
@@ -40,7 +40,7 @@ export abstract class OnPolicyAlgorithm<
     this.policy = new ActorCriticPolicy(
       this.observationSpace,
       this.actionSpace,
-      policyParams,
+      policyParams
     );
 
     this.buffer = new RolloutBuffer(
@@ -48,7 +48,7 @@ export abstract class OnPolicyAlgorithm<
       this.observationSpace.shape,
       this.actionSpace.shape,
       this.gaeLmbda,
-      this.gamma,
+      this.gamma
     );
 
     this.totalReward = 0;
@@ -58,10 +58,10 @@ export abstract class OnPolicyAlgorithm<
   abstract train(): Promise<void>;
 
   async collectRollouts(
-    callBack: BaseCallback<ObsType, ActType> | null,
+    callBack: BaseCallback<ObsType, ActType> | null
   ): Promise<boolean> {
     if (this.lastObs === null || this.lastEpisodeStarts === null) {
-      throw new Error("Last obs/episode start must not be null!");
+      throw new Error('Last obs/episode start must not be null!');
     }
 
     let curNSteps = 0;
@@ -72,11 +72,11 @@ export abstract class OnPolicyAlgorithm<
 
     while (curNSteps < this.nSteps) {
       if (this.lastObs === null || this.lastEpisodeStarts === null) {
-        throw new Error("Last obs/episode start must not be null!");
+        throw new Error('Last obs/episode start must not be null!');
       }
       let [actions, values, logProbs] = this.policy.forward(
         this.lastObs,
-        false,
+        false
       );
       let action: tf.Tensor | number;
       if (this.actionSpace instanceof gym.spaces.Discrete) {
@@ -85,12 +85,12 @@ export abstract class OnPolicyAlgorithm<
       } else if (this.actionSpace instanceof gym.spaces.Box) {
         // actions.print();
         if (
-          typeof this.actionSpace.low === "number" &&
-          typeof this.actionSpace.high === "number"
+          typeof this.actionSpace.low === 'number' &&
+          typeof this.actionSpace.high === 'number'
         ) {
           action = actions.clipByValue(
             this.actionSpace.low,
-            this.actionSpace.high,
+            this.actionSpace.high
           );
         } else if (
           this.actionSpace.low instanceof tf.Tensor &&
@@ -99,10 +99,10 @@ export abstract class OnPolicyAlgorithm<
           action = clipTensor(
             actions,
             this.actionSpace.low,
-            this.actionSpace.high,
+            this.actionSpace.high
           );
         } else {
-          throw new Error("Low and high must of the same type in Box!");
+          throw new Error('Low and high must of the same type in Box!');
         }
 
         action = action.reshape(this.actionSpace.shape);
@@ -112,11 +112,11 @@ export abstract class OnPolicyAlgorithm<
       ) {
         action = actions.reshape(this.actionSpace.shape);
       } else {
-        throw new Error("Unknown action space");
+        throw new Error('Unknown action space');
       }
 
       let [obs, reward, done, truncated, info] = await this.env.step(
-        action as ActType,
+        action as ActType
       );
       this.totalReward += reward;
 
@@ -138,14 +138,14 @@ export abstract class OnPolicyAlgorithm<
         tf.tensor([reward]),
         this.lastEpisodeStarts,
         values,
-        logProbs,
+        logProbs
       );
       curNSteps++;
 
       // tf.dispose(this.lastObs);
       this.lastObs = obs;
       // tf.dispose(this.lastEpisodeStarts);
-      this.lastEpisodeStarts = tf.tensor([done || truncated], [1], "float32");
+      this.lastEpisodeStarts = tf.tensor([done || truncated], [1], 'float32');
 
       this.episodeLength += 1;
 
@@ -153,8 +153,8 @@ export abstract class OnPolicyAlgorithm<
         let [newObs, _] = this.env.reset();
         this.lastObs = newObs;
 
-        this.logger.recordMean("Reward Mean", this.totalReward);
-        this.logger.recordMean("Episode Length Mean", this.episodeLength);
+        this.logger.recordMean('Reward Mean', this.totalReward);
+        this.logger.recordMean('Episode Length Mean', this.episodeLength);
 
         this.totalReward = 0;
         this.episodeLength = 0;
@@ -181,14 +181,14 @@ export abstract class OnPolicyAlgorithm<
     totalTimesteps: number,
     callBack: BaseCallback<ObsType, ActType> | null,
     resetNumTimesteps: boolean = false,
-    logInterval: number | null = 1,
+    logInterval: number | null = 1
   ): Promise<void> {
     let iteration = 0;
 
     const [totalTimestepsFinal, callBackFinal] = await this.setupLearn(
       totalTimesteps,
       callBack,
-      resetNumTimesteps,
+      resetNumTimesteps
     );
 
     await callBackFinal?.onTrainingStart();
@@ -218,13 +218,13 @@ export abstract class OnPolicyAlgorithm<
   }
 
   dumpLogs(iteration: number = 0) {
-    this.logger.record("Iteration", iteration);
+    this.logger.record('Iteration', iteration);
 
     // Calculate the time difference in milliseconds
     const timeElapsed = (Date.now() - this.startTime) / 1000;
     const fps = (this.numTimesteps - this.numTimestepsAtStart) / timeElapsed;
-    this.logger.record("FPS", Math.round(fps));
-    this.logger.record("Time Elapsed", timeElapsed);
+    this.logger.record('FPS', Math.round(fps));
+    this.logger.record('Time Elapsed', timeElapsed);
     return this.logger.dump(this.numTimesteps);
   }
 

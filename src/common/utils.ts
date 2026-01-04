@@ -1,9 +1,9 @@
-import * as tf from "@tensorflow/tfjs";
+import * as tf from '@tensorflow/tfjs';
 
 // https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html
 export function clipGradNorm(
   gradients: tf.NamedTensorMap,
-  maxGradNorm: number,
+  maxGradNorm: number
 ): tf.NamedTensorMap {
   return tf.tidy(() => {
     const normedGrad: tf.NamedTensorMap = {};
@@ -23,7 +23,7 @@ export function clipGradNorm(
 export function clipTensor(
   tensor: tf.Tensor,
   low: tf.Tensor,
-  high: tf.Tensor,
+  high: tf.Tensor
 ): tf.Tensor {
   return tf.tidy(() => {
     const upperFlow = high.sub(tensor);
@@ -42,7 +42,7 @@ export function clipTensor(
 // From stable baselines
 export function explainedVariance(
   yPred: tf.Tensor,
-  yTrue: tf.Tensor,
+  yTrue: tf.Tensor
 ): tf.Tensor {
   /*
     Computes fraction of variance that ypred explains about y.

@@ -1,22 +1,22 @@
-import * as tf from "@tensorflow/tfjs";
+import * as tf from '@tensorflow/tfjs';
 
 // Couldn't find where TF exported this type so added it here manually
 export type ActivationType =
-  | "elu"
-  | "hardSigmoid"
-  | "linear"
-  | "relu"
-  | "relu6"
-  | "selu"
-  | "sigmoid"
-  | "softmax"
-  | "softplus"
-  | "softsign"
-  | "tanh"
-  | "swish"
-  | "mish"
-  | "gelu"
-  | "gelu_new";
+  | 'elu'
+  | 'hardSigmoid'
+  | 'linear'
+  | 'relu'
+  | 'relu6'
+  | 'selu'
+  | 'sigmoid'
+  | 'softmax'
+  | 'softplus'
+  | 'softsign'
+  | 'tanh'
+  | 'swish'
+  | 'mish'
+  | 'gelu'
+  | 'gelu_new';
 
 export type RolloutBufferSamples = [
   observations: tf.Tensor,
