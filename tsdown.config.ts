@@ -1,7 +1,7 @@
-import { defineConfig } from "tsdown/config";
+import { defineConfig } from 'tsdown/config';
 
 export default defineConfig({
-  entry: ["./src/index.ts"],
+  entry: ['./src/index.ts'],
   minify: {
     compress: true,
     mangle: true,
