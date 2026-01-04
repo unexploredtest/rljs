@@ -32,6 +32,6 @@
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
-    "@unexploredtest/gymjs": "^0.1.0"
+    "@unexploredtest/gymjs": "^0.1.1"
   }
 }
