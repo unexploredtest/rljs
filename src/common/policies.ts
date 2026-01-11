@@ -11,6 +11,7 @@ import {
   BaseModelParams,
   ActorCriticParams,
   ActivationType,
+  QNetworkParams,
 } from './type_aliases';
 
 export abstract class baseModel<
@@ -254,5 +255,104 @@ export class ActorCriticPolicy<
       })
       .apply(l) as tf.SymbolicTensor;
     return tf.model({ inputs: input, outputs: l });
+  }
+}
+
+export class QNetworkPolicy<
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
+> extends BasePolicy<ObsType, ActType> {
+  public model: tf.LayersModel;
+
+  constructor(
+    observationSpace: gym.spaces.Space<ObsType>,
+    actionSpace: gym.spaces.Space<ActType>,
+    modelParams: QNetworkParams
+  ) {
+    super(observationSpace, actionSpace, modelParams);
+
+    this.model = this.createModel(modelParams.net);
+  }
+
+  forward(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
+    return this.model.predict(obs) as tf.Tensor;
+  }
+
+  predict(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
+    return tf.tidy(() => {
+      const qValues = this.forward(obs, deterministic);
+      const action = qValues.argMax(1).reshape([-1]);
+      return action;
+    });
+  }
+
+  async saveModels(modelURL: string): Promise<void> {
+    const saveResultPolicy = await this.model.save(modelURL);
+  }
+
+  async loadModels(modelURL: string): Promise<void> {
+    this.model = await tf.loadLayersModel(modelURL);
+  }
+
+  private createModel(netArch: number[]) {
+    const input = tf.layers.input({ shape: this.observationSpace.shape });
+    let l = input;
+    netArch.forEach((units, i) => {
+      l = tf.layers
+        .dense({
+          units,
+          activation: 'relu',
+        })
+        .apply(l) as tf.SymbolicTensor;
+    });
+    if (this.actionSpace instanceof gym.spaces.Discrete) {
+      l = tf.layers
+        .dense({
+          units: this.actionSpace.n,
+        })
+        .apply(l) as tf.SymbolicTensor;
+    } else {
+      throw new Error('Unsupported action space');
+    }
+    return tf.model({ inputs: input, outputs: l });
+  }
+}
+
+export class DQNPolicy<
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
+> extends BasePolicy<ObsType, ActType> {
+  public qNet: QNetworkPolicy<ObsType, ActType>;
+  public qNetTarget: QNetworkPolicy<ObsType, ActType>;
+
+  constructor(
+    observationSpace: gym.spaces.Space<ObsType>,
+    actionSpace: gym.spaces.Space<ActType>,
+    modelParams: QNetworkParams
+  ) {
+    super(observationSpace, actionSpace, modelParams);
+
+    this.qNet = this.createQNetwork(modelParams);
+    this.qNetTarget = this.createQNetwork(modelParams);
+  }
+
+  forward(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
+    return this.qNet.forward(obs, deterministic) as tf.Tensor;
+  }
+
+  predict(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
+    return this.qNet.predict(obs, deterministic);
+  }
+
+  async saveModels(modelURL: string): Promise<void> {
+    await this.qNet.saveModels(modelURL);
+  }
+
+  async loadModels(modelURL: string): Promise<void> {
+    await this.qNet.loadModels(modelURL);
+  }
+
+  private createQNetwork(params: QNetworkParams) {
+    return new QNetworkPolicy(this.observationSpace, this.actionSpace, params);
   }
 }

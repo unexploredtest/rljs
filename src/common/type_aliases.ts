@@ -78,3 +78,7 @@ export interface ActorCriticParams extends BaseModelParams {
   valueNet: number[];
   logStdInit: number;
 }
+
+export interface QNetworkParams extends BaseModelParams {
+  net: number[];
+}
