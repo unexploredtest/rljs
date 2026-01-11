@@ -325,29 +325,31 @@ export class ReplayBuffer extends BaseBuffer {
   }
 
   protected getSamples(indices: tf.Tensor): ReplayBufferSamples {
-    const observations: tf.Tensor[] = [];
-    const nextObservations: tf.Tensor[] = [];
-    const actions: tf.Tensor[] = [];
-    const rewards: tf.Tensor[] = [];
-    const dones: tf.Tensor[] = [];
-    const timeouts: tf.Tensor[] = [];
+    return tf.tidy(() => {
+      const observations: tf.Tensor[] = [];
+      const nextObservations: tf.Tensor[] = [];
+      const actions: tf.Tensor[] = [];
+      const rewards: tf.Tensor[] = [];
+      const dones: tf.Tensor[] = [];
+      const timeouts: tf.Tensor[] = [];
 
-    Array.from(indices.dataSync()).map((indexValue) => {
-      observations.push(this.observations[indexValue]);
-      nextObservations.push(this.nextObservations[indexValue]);
-      actions.push(this.actions[indexValue]);
-      rewards.push(this.rewards[indexValue]);
-      dones.push(this.dones[indexValue]);
-      timeouts.push(this.timeouts[indexValue]);
+      Array.from(indices.dataSync()).map((indexValue) => {
+        observations.push(this.observations[indexValue]);
+        nextObservations.push(this.nextObservations[indexValue]);
+        actions.push(this.actions[indexValue]);
+        rewards.push(this.rewards[indexValue]);
+        dones.push(this.dones[indexValue]);
+        timeouts.push(this.timeouts[indexValue]);
+      });
+
+      return [
+        tf.stack(observations),
+        tf.stack(nextObservations),
+        tf.stack(actions),
+        tf.stack(rewards),
+        tf.stack(dones),
+        tf.stack(timeouts),
+      ];
     });
-
-    return [
-      tf.stack(observations),
-      tf.stack(nextObservations),
-      tf.stack(actions),
-      tf.stack(rewards),
-      tf.stack(dones),
-      tf.stack(timeouts),
-    ];
   }
 }
