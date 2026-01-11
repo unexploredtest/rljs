@@ -1,7 +1,11 @@
 import * as tf from '@tensorflow/tfjs';
 import * as gym from '@unexploredtest/gymjs';
 
-import { RolloutBufferResult, RolloutBufferSamples } from './type_aliases';
+import {
+  ReplayBufferSamples,
+  RolloutBufferResult,
+  RolloutBufferSamples,
+} from './type_aliases';
 
 abstract class BaseBuffer {
   protected bufferSize: number;
@@ -234,5 +238,116 @@ export class RolloutBuffer extends BaseBuffer {
       .stack(this.advantages)
       .add(tf.stack(this.values))
       .reshape([this.pos]);
+  }
+}
+
+export class ReplayBuffer extends BaseBuffer {
+  observations: tf.Tensor[];
+  nextObservations: tf.Tensor[];
+  actions: tf.Tensor[];
+  rewards: tf.Tensor[];
+  dones: tf.Tensor[];
+  timeouts: tf.Tensor[];
+
+  constructor(
+    bufferSize: number,
+    observationShape: number[],
+    actionShape: number[]
+  ) {
+    super(bufferSize, observationShape, actionShape);
+    // Unfortunately I can't just call this.reset() and expect TS to figure it out
+    this.observations = [];
+    this.nextObservations = [];
+    this.actions = [];
+    this.rewards = [];
+    this.dones = [];
+    this.timeouts = [];
+    super.reset();
+  }
+
+  reset(): void {
+    tf.dispose([
+      this.observations,
+      this.nextObservations,
+      this.actions,
+      this.rewards,
+      this.dones,
+      this.timeouts,
+    ]);
+
+    this.observations = [];
+    this.nextObservations = [];
+    this.actions = [];
+    this.rewards = [];
+    this.dones = [];
+    this.timeouts = [];
+    super.reset();
+  }
+
+  add(
+    obs: tf.Tensor,
+    nextObs: tf.Tensor,
+    action: tf.Tensor,
+    reward: tf.Tensor,
+    done: tf.Tensor,
+    truncated: tf.Tensor
+  ): void {
+    if (this.full) {
+      tf.dispose([
+        this.observations[this.pos],
+        this.nextObservations[this.pos],
+        this.actions[this.pos],
+        this.rewards[this.pos],
+        this.dones[this.pos],
+        this.timeouts[this.pos],
+      ]);
+
+      this.observations[this.pos] = obs;
+      this.nextObservations[this.pos] = nextObs;
+      this.actions[this.pos] = action;
+      this.rewards[this.pos] = reward;
+      this.dones[this.pos] = done;
+      this.timeouts[this.pos] = truncated;
+    } else {
+      this.observations.push(obs);
+      this.nextObservations.push(nextObs);
+      this.actions.push(action);
+      this.rewards.push(reward);
+      this.dones.push(done);
+      this.timeouts.push(truncated);
+    }
+
+    this.pos += 1;
+    if (this.pos == this.bufferSize) {
+      this.full = true;
+      this.pos = 0;
+    }
+  }
+
+  protected getSamples(indices: tf.Tensor): ReplayBufferSamples {
+    const observations: tf.Tensor[] = [];
+    const nextObservations: tf.Tensor[] = [];
+    const actions: tf.Tensor[] = [];
+    const rewards: tf.Tensor[] = [];
+    const dones: tf.Tensor[] = [];
+    const timeouts: tf.Tensor[] = [];
+
+    Array.from(indices.dataSync()).map((indexValue) => {
+      observations.push(this.observations[indexValue]);
+      nextObservations.push(this.nextObservations[indexValue]);
+      actions.push(this.actions[indexValue]);
+      rewards.push(this.rewards[indexValue]);
+      dones.push(this.dones[indexValue]);
+      timeouts.push(this.timeouts[indexValue]);
+    });
+
+    return [
+      tf.stack(observations),
+      tf.stack(nextObservations),
+      tf.stack(actions),
+      tf.stack(rewards),
+      tf.stack(dones),
+      tf.stack(timeouts),
+    ];
   }
 }

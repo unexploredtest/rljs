@@ -35,6 +35,15 @@ export type RolloutBufferResult = {
   advantages: tf.Tensor;
 };
 
+export type ReplayBufferSamples = [
+  observations: tf.Tensor,
+  nextObservations: tf.Tensor,
+  actions: tf.Tensor,
+  rewards: tf.Tensor,
+  dones: tf.Tensor,
+  timeouts: tf.Tensor,
+];
+
 export interface BaseHyperParams {}
 
 export interface OnPolicyHyperParams extends BaseHyperParams {
