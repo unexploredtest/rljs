@@ -93,6 +93,7 @@ export class DQN<
         const currentQValuesRaw = this.policy.qNet.forward(observations, true);
         const currentQValues = tf.gather(currentQValuesRaw, actions.asType("int32"), 1, 1);
 
+        // TODO: Use Huber loss instead of MSE like stable baselines 3
         const loss = (currentQValues.sub(targetQValues)).square().mean();
         losses.push(loss.asScalar().dataSync()[0])
 
@@ -137,10 +138,19 @@ export class DQN<
   protected override onStep() {
     this.nCalls++;
 
+    // Update target network
     if(this.nCalls % this.targetUpdateInterval === 0) {
-      this.policy.qNetTarget.model.setWeights(this.policy.qNet.model.getWeights());
+      tf.tidy(() => {
+        const orgParams = this.policy.qNet.model.getWeights();
+        const targetParams = this.policy.qNet.model.getWeights();
+        const newParams = targetParams.map((value, index) => {
+          return value.mul(1 - this.tau).add(orgParams[index].mul(this.tau));
+        })
+        this.policy.qNetTarget.model.setWeights(newParams);
+      })
     }
 
+    // Update exploration rate
     const progressRemaining = 1 - (this.numTimesteps / this.totalTimesteps);
 
     if((1 - progressRemaining) > this.explorationFraction) {
