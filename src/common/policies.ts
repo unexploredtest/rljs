@@ -353,6 +353,7 @@ export class DQNPolicy<
 
   async loadModels(modelURL: string): Promise<void> {
     await this.qNet.loadModels(modelURL);
+    await this.qNetTarget.loadModels(modelURL);
   }
 
   private createQNetwork(params: QNetworkParams) {
