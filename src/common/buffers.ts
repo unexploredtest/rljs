@@ -324,6 +324,10 @@ export class ReplayBuffer extends BaseBuffer {
     }
   }
 
+  public sample(batchSize: number): ReplayBufferSamples {
+    return super.sample(batchSize) as ReplayBufferSamples;
+  }
+
   protected getSamples(indices: tf.Tensor): ReplayBufferSamples {
     return tf.tidy(() => {
       const observations: tf.Tensor[] = [];

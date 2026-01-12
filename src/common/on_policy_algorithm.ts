@@ -185,7 +185,7 @@ export abstract class OnPolicyAlgorithm<
   ): Promise<void> {
     let iteration = 0;
 
-    const [totalTimestepsFinal, callBackFinal] = await this.setupLearn(
+    const callBackFinal = await this.setupLearn(
       totalTimesteps,
       callBack,
       resetNumTimesteps
@@ -193,7 +193,7 @@ export abstract class OnPolicyAlgorithm<
 
     await callBackFinal?.onTrainingStart();
 
-    while (this.numTimesteps < totalTimestepsFinal) {
+    while (this.numTimesteps < this.totalTimesteps) {
       const continueTraining = await this.collectRollouts(callBackFinal);
 
       if (!continueTraining) {

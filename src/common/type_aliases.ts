@@ -55,6 +55,17 @@ export interface OnPolicyHyperParams extends BaseHyperParams {
   maxGradNorm: number;
 }
 
+export interface OffPolicyHyperParams extends BaseHyperParams {
+  bufferSize: number;
+  learningStarts: number;
+  batchSize: number;
+  tau: number;
+  gamma: number;
+  trainFreq: number;
+  gradientSteps: number;
+  nSteps: number;
+}
+
 export interface PPOHyperParameters extends OnPolicyHyperParams {
   clipRange: number;
   normalizeadvantage: boolean;
@@ -65,6 +76,14 @@ export interface PPOHyperParameters extends OnPolicyHyperParams {
 
 export interface A2CHyperParameters extends OnPolicyHyperParams {
   normalizeadvantage: boolean;
+}
+
+export interface DQNHyperParams extends OffPolicyHyperParams {
+  maxGradNorm: number;
+  initialEps: number;
+  finalEps: number;
+  explorationFraction: number;
+  targetUpdateInterval: number;
 }
 
 export interface BaseModelParams {

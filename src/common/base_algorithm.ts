@@ -13,8 +13,10 @@ export abstract class BaseAlgorithm<
   public env: gym.Env<ObsType, ActType>;
   public observationSpace: gym.spaces.Space<ObsType>;
   public actionSpace: gym.spaces.Space<ActType>;
+  public totalTimesteps: number;
   public numTimesteps: number;
   public numTimestepsAtStart: number;
+  public nUpdates: number;
   public policy: BasePolicy<ObsType, ActType> | null;
   public lastObs: tf.Tensor | null;
   public lastEpisodeStarts: tf.Tensor | null;
@@ -35,8 +37,10 @@ export abstract class BaseAlgorithm<
     this.lastObs = null;
 
     this.verbose = verbose;
+    this.totalTimesteps = 0;
     this.numTimesteps = 0;
     this.numTimestepsAtStart = 0;
+    this.nUpdates = 0;
     this.startTime = Date.now();
     this.logger = new Logger();
   }
@@ -52,7 +56,7 @@ export abstract class BaseAlgorithm<
     totalTimesteps: number,
     callBack: BaseCallback<ObsType, ActType> | null,
     resetNumTimesteps: boolean = false
-  ): Promise<[number, BaseCallback<ObsType, ActType> | null]> {
+  ): Promise<BaseCallback<ObsType, ActType> | null> {
     if (this.lastObs === null) {
       let [obs, _] = this.env.reset();
       this.lastObs = obs;
@@ -62,13 +66,14 @@ export abstract class BaseAlgorithm<
 
     if (resetNumTimesteps) {
       this.numTimesteps = 0;
+      this.totalTimesteps = totalTimesteps;
     } else {
-      totalTimesteps += this.numTimesteps;
+      this.totalTimesteps = this.numTimesteps + totalTimesteps;
     }
 
     this.numTimestepsAtStart = this.numTimesteps;
     const callBackFinal = await this.initCallback(callBack);
-    return [totalTimesteps, callBackFinal];
+    return callBackFinal;
   }
 
   abstract learn(
