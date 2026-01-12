@@ -281,7 +281,10 @@ export class QNetworkPolicy<
   predict(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
     return tf.tidy(() => {
       const qValues = this.forward(obs, deterministic);
-      const action = qValues.argMax(1).reshape([qValues.shape[0], -1]).asType("float32");
+      const action = qValues
+        .argMax(1)
+        .reshape([qValues.shape[0], -1])
+        .asType('float32');
       return action;
     });
   }

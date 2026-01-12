@@ -25,14 +25,14 @@ const DEFAULT_HYPER_PARAMETERS: DQNHyperParams = {
   initialEps: 1.0,
   finalEps: 0.05,
   explorationFraction: 0.1,
-  targetUpdateInterval: 10000
+  targetUpdateInterval: 10000,
 };
 
 const DEFAULT_POLICY_PARAMETERS: QNetworkParams = {
   lr: 1e-4,
   activation: 'relu',
   optim: undefined,
-  net: [64, 64]
+  net: [64, 64],
 };
 
 export class DQN<
@@ -66,9 +66,13 @@ export class DQN<
       policyParameters
     ) as QNetworkParams;
 
-    super(env, fHyperParameters, fPolicyParameters, verbose); 
+    super(env, fHyperParameters, fPolicyParameters, verbose);
 
-    this.policy = new DQNPolicy(this.observationSpace, this.actionSpace, fPolicyParameters);
+    this.policy = new DQNPolicy(
+      this.observationSpace,
+      this.actionSpace,
+      fPolicyParameters
+    );
 
     this.maxGradNorm = fHyperParameters.maxGradNorm;
     this.initialEps = fHyperParameters.initialEps;
@@ -82,20 +86,37 @@ export class DQN<
   async train(): Promise<void> {
     const losses: number[] = [];
 
-    for(let i = 0; i < this.gradientStepsUse; i++) {
-      const [observations, nextObservations, actions, rewards, dones, timeouts] = this.buffer.sample(this.batchSize);
+    for (let i = 0; i < this.gradientStepsUse; i++) {
+      const [
+        observations,
+        nextObservations,
+        actions,
+        rewards,
+        dones,
+        timeouts,
+      ] = this.buffer.sample(this.batchSize);
 
-      const nextQValuesRaw = this.policy.qNetTarget.forward(nextObservations, true);
+      const nextQValuesRaw = this.policy.qNetTarget.forward(
+        nextObservations,
+        true
+      );
       const nextQValues = nextQValuesRaw.max(1).reshape([-1, 1]);
-      const targetQValues = rewards.add((tf.scalar(1).sub(dones)).mul(this.gamma).mul(nextQValues));
+      const targetQValues = rewards.add(
+        tf.scalar(1).sub(dones).mul(this.gamma).mul(nextQValues)
+      );
 
       const optFunc = () => {
         const currentQValuesRaw = this.policy.qNet.forward(observations, true);
-        const currentQValues = tf.gather(currentQValuesRaw, actions.asType("int32"), 1, 1);
+        const currentQValues = tf.gather(
+          currentQValuesRaw,
+          actions.asType('int32'),
+          1,
+          1
+        );
 
         // TODO: Use Huber loss instead of MSE like stable baselines 3
-        const loss = (currentQValues.sub(targetQValues)).square().mean();
-        losses.push(loss.asScalar().dataSync()[0])
+        const loss = currentQValues.sub(targetQValues).square().mean();
+        losses.push(loss.asScalar().dataSync()[0]);
 
         return loss.asScalar();
       };
@@ -112,14 +133,8 @@ export class DQN<
 
     this.nUpdates += this.gradientStepsUse;
 
-    this.logger.record(
-      'nUpdates',
-      this.nUpdates
-    );
-    this.logger.record(
-      'Loss',
-      tf.util.sum(losses) / losses.length
-    );
+    this.logger.record('nUpdates', this.nUpdates);
+    this.logger.record('Loss', tf.util.sum(losses) / losses.length);
   }
 
   // Overrides the base_class predict function to include epsilon-greedy exploration.
@@ -128,10 +143,10 @@ export class DQN<
       throw new Error('Policy not defined!');
     }
 
-    if(!deterministic && Math.random() < this.explorationRate) {
-        return tf.tensor([this.actionSpace.sample()])
+    if (!deterministic && Math.random() < this.explorationRate) {
+      return tf.tensor([this.actionSpace.sample()]);
     } else {
-        return this.policy.predict(obs, deterministic);
+      return this.policy.predict(obs, deterministic);
     }
   }
 
@@ -139,27 +154,30 @@ export class DQN<
     this.nCalls++;
 
     // Update target network
-    if(this.nCalls % this.targetUpdateInterval === 0) {
+    if (this.nCalls % this.targetUpdateInterval === 0) {
       tf.tidy(() => {
         const orgParams = this.policy.qNet.model.getWeights();
         const targetParams = this.policy.qNet.model.getWeights();
         const newParams = targetParams.map((value, index) => {
           return value.mul(1 - this.tau).add(orgParams[index].mul(this.tau));
-        })
+        });
         this.policy.qNetTarget.model.setWeights(newParams);
-      })
+      });
     }
 
     // Update exploration rate
-    const progressRemaining = 1 - (this.numTimesteps / this.totalTimesteps);
+    const progressRemaining = 1 - this.numTimesteps / this.totalTimesteps;
 
-    if((1 - progressRemaining) > this.explorationFraction) {
+    if (1 - progressRemaining > this.explorationFraction) {
       this.explorationRate = this.finalEps;
     } else {
-      this.explorationRate = this.initialEps + (1 - progressRemaining) * (this.finalEps - this.initialEps) / this.explorationFraction;
+      this.explorationRate =
+        this.initialEps +
+        ((1 - progressRemaining) * (this.finalEps - this.initialEps)) /
+          this.explorationFraction;
     }
 
-    this.logger.recordMean("Exploration Rate", this.explorationRate);
+    this.logger.recordMean('Exploration Rate', this.explorationRate);
   }
 
   async learn(

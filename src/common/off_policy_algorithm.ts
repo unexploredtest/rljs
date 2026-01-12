@@ -9,8 +9,6 @@ import { ActorCriticParams } from './type_aliases';
 import { clipTensor } from './utils';
 import { BaseCallback } from './callbacks';
 
-
-
 export abstract class OffPolicyAlgorithm<
   ObsType extends tf.Tensor,
   ActType extends tf.Tensor | number,
@@ -59,17 +57,23 @@ export abstract class OffPolicyAlgorithm<
 
   abstract train(): Promise<void>;
 
-  private storeTransition(bufferAction: tf.Tensor, newObs: tf.Tensor, reward: tf.Tensor, dones: tf.Tensor, truns: tf.Tensor) {
-    if(this.lastObs === null) {
-        throw new Error("Last Obs can't be null! Reset the environment first.");
+  private storeTransition(
+    bufferAction: tf.Tensor,
+    newObs: tf.Tensor,
+    reward: tf.Tensor,
+    dones: tf.Tensor,
+    truns: tf.Tensor
+  ) {
+    if (this.lastObs === null) {
+      throw new Error("Last Obs can't be null! Reset the environment first.");
     }
 
     this.buffer.add(this.lastObs, newObs, bufferAction, reward, dones, truns);
   }
 
   private sampleAction(): [tf.Tensor, tf.Tensor] {
-    if(this.policy === null) {
-        throw new Error("Policy should be defined.");
+    if (this.policy === null) {
+      throw new Error('Policy should be defined.');
     }
 
     if (this.lastObs === null) {
@@ -78,21 +82,24 @@ export abstract class OffPolicyAlgorithm<
 
     let unscaledAction: tf.Tensor;
     let action: tf.Tensor;
-    
-    if(this.numTimesteps < this.learningStarts) {
-        const action = this.actionSpace.sample();
-        if(!(action instanceof tf.Tensor)) {
-            unscaledAction = tf.tensor([action]);
-        } else {
-            unscaledAction = action;
-        }
+
+    if (this.numTimesteps < this.learningStarts) {
+      const action = this.actionSpace.sample();
+      if (!(action instanceof tf.Tensor)) {
+        unscaledAction = tf.tensor([action]);
+      } else {
+        unscaledAction = action;
+      }
     } else {
-        unscaledAction = this.predict(this.lastObs.reshape([-1, ...this.lastObs.shape]), false).reshape([-1]);
+      unscaledAction = this.predict(
+        this.lastObs.reshape([-1, ...this.lastObs.shape]),
+        false
+      ).reshape([-1]);
     }
 
     action = unscaledAction.clone();
 
-    return [action, unscaledAction]
+    return [action, unscaledAction];
   }
 
   async collectRollouts(
@@ -102,17 +109,16 @@ export abstract class OffPolicyAlgorithm<
       throw new Error('Last obs must not be null!');
     }
 
-    if(this.trainFreq < 1) {
+    if (this.trainFreq < 1) {
       throw new Error('Train frequency must at least be 1');
     }
 
     let numCollectedSteps = 0;
     let numCollectedEpisodes = 0;
-    
+
     await callBack?.onRolloutStart();
 
     while (numCollectedSteps < this.trainFreq) {
-      
       let [actions, bufferActions] = this.sampleAction();
 
       let action: tf.Tensor | number;
@@ -160,7 +166,13 @@ export abstract class OffPolicyAlgorithm<
         return [numCollectedSteps, numCollectedEpisodes, false];
       }
 
-      this.storeTransition(bufferActions, obs, tf.tensor([reward]), tf.tensor([done]), tf.tensor([truncated]));
+      this.storeTransition(
+        bufferActions,
+        obs,
+        tf.tensor([reward]),
+        tf.tensor([done]),
+        tf.tensor([truncated])
+      );
 
       this.onStep();
 
@@ -183,9 +195,7 @@ export abstract class OffPolicyAlgorithm<
     return [numCollectedSteps, numCollectedEpisodes, true];
   }
 
-  protected onStep() {
-
-  }
+  protected onStep() {}
 
   async learn(
     totalTimesteps: number,
@@ -193,7 +203,6 @@ export abstract class OffPolicyAlgorithm<
     resetNumTimesteps: boolean = false,
     logInterval: number | null = 1
   ): Promise<void> {
-    
     let iteration = 0;
 
     const callBackFinal = await this.setupLearn(
@@ -203,10 +212,10 @@ export abstract class OffPolicyAlgorithm<
     );
 
     await callBackFinal?.onTrainingStart();
-    
 
     while (this.numTimesteps < this.totalTimesteps) {
-      const [numCollectedSteps, numCollectedEpisodes, continueTraining] = await this.collectRollouts(callBackFinal);
+      const [numCollectedSteps, numCollectedEpisodes, continueTraining] =
+        await this.collectRollouts(callBackFinal);
 
       if (!continueTraining) {
         break;
@@ -222,10 +231,11 @@ export abstract class OffPolicyAlgorithm<
         console.log(this.dumpLogs(iteration));
       }
 
-      if(this.numTimesteps > 0 && this.numTimesteps > this.learningStarts) {
-        this.gradientStepsUse = this.gradientSteps >= 0 ? this.gradientSteps : numCollectedEpisodes; 
-        if(this.gradientStepsUse > 0) {
-            await this.train();
+      if (this.numTimesteps > 0 && this.numTimesteps > this.learningStarts) {
+        this.gradientStepsUse =
+          this.gradientSteps >= 0 ? this.gradientSteps : numCollectedEpisodes;
+        if (this.gradientStepsUse > 0) {
+          await this.train();
         }
       }
     }
