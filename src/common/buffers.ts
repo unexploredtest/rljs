@@ -337,7 +337,7 @@ export class ReplayBuffer extends BaseBuffer {
       const dones: tf.Tensor[] = [];
       const timeouts: tf.Tensor[] = [];
 
-      Array.from(indices.dataSync()).map((indexValue) => {
+      Array.from(indices.dataSync()).forEach((indexValue) => {
         observations.push(this.observations[indexValue]);
         nextObservations.push(this.nextObservations[indexValue]);
         actions.push(this.actions[indexValue]);
