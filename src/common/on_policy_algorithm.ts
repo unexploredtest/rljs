@@ -153,8 +153,8 @@ export abstract class OnPolicyAlgorithm<
         let [newObs, _] = this.env.reset();
         this.lastObs = newObs;
 
-        this.logger.recordMean('Reward Mean', this.totalReward);
-        this.logger.recordMean('Episode Length Mean', this.episodeLength);
+        this.totalRewards.push(this.totalReward);
+        this.episodeLengths.push(this.episodeLength);
 
         this.totalReward = 0;
         this.episodeLength = 0;
@@ -220,6 +220,10 @@ export abstract class OnPolicyAlgorithm<
   dumpLogs(iteration: number = 0) {
     this.logger.record('Iteration', iteration);
 
+    if(this.totalRewards.length > 0 && this.episodeLengths.length > 0) {
+      this.logger.recordMean('Reward Mean', tf.util.sum(this.totalRewards) / this.totalRewards.length);
+      this.logger.recordMean('Episode Length Mean', tf.util.sum(this.episodeLengths) / this.episodeLengths.length);
+    }
     // Calculate the time difference in milliseconds
     const timeElapsed = (Date.now() - this.startTime) / 1000;
     const fps = (this.numTimesteps - this.numTimestepsAtStart) / timeElapsed;

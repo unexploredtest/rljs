@@ -22,6 +22,8 @@ export abstract class BaseAlgorithm<
   public lastEpisodeStarts: tf.Tensor | null;
   public logger: Logger;
   public startTime: number;
+  public totalRewards: number[];
+  public episodeLengths: number[];
   protected verbose: boolean;
   constructor(
     env: gym.Env<ObsType, ActType>,
@@ -41,6 +43,8 @@ export abstract class BaseAlgorithm<
     this.numTimesteps = 0;
     this.numTimestepsAtStart = 0;
     this.nUpdates = 0;
+    this.totalRewards = [];
+    this.episodeLengths = [];
     this.startTime = Date.now();
     this.logger = new Logger();
   }
