@@ -1,11 +1,12 @@
-import * as tf from '@tensorflow/tfjs';
+import * as tfCore from '@tensorflow/tfjs';
+import { tf } from '../core';
 import * as gym from '@unexploredtest/gymjs';
 import { BaseAlgorithm } from './base_algorithm';
 import { Logger } from './logger';
 
 export abstract class BaseCallback<
-  ObsType extends tf.Tensor,
-  ActType extends number | tf.Tensor,
+  ObsType extends tfCore.Tensor,
+  ActType extends number | tfCore.Tensor,
 > {
   protected model: BaseAlgorithm<ObsType, ActType> | null;
   protected nCalls: number;

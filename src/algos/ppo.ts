@@ -1,4 +1,5 @@
-import * as tf from '@tensorflow/tfjs';
+import * as tfCore from '@tensorflow/tfjs';
+import { tf } from '../core';
 import * as gym from '@unexploredtest/gymjs';
 
 import { OnPolicyAlgorithm } from '../common/on_policy_algorithm';
@@ -33,8 +34,8 @@ const DEFAULT_POLICY_PARAMETERS: ActorCriticParams = {
 };
 
 export class PPO<
-  ObsType extends tf.Tensor,
-  ActType extends tf.Tensor | number,
+  ObsType extends tfCore.Tensor,
+  ActType extends tfCore.Tensor | number,
 > extends OnPolicyAlgorithm<ObsType, ActType> {
   public clipRange: number;
   public batchSize: number;
@@ -146,7 +147,7 @@ export class PPO<
 
         tf.tidy(() => {
           const result = this.policy.optim.computeGradients(optFunc);
-          let normedGrad: tf.NamedTensorMap = clipGradNorm(
+          let normedGrad: tfCore.NamedTensorMap = clipGradNorm(
             result.grads,
             this.maxGradNorm
           );

@@ -1,4 +1,5 @@
-import * as tf from '@tensorflow/tfjs';
+import * as tfCore from '@tensorflow/tfjs';
+import { tf } from '../core';
 import * as gym from '@unexploredtest/gymjs';
 
 import {
@@ -36,9 +37,9 @@ abstract class BaseBuffer {
     }
   }
 
-  abstract add(...args: tf.Tensor[]): void;
+  abstract add(...args: tfCore.Tensor[]): void;
 
-  extend(...args: tf.Tensor[][]): void {
+  extend(...args: tfCore.Tensor[][]): void {
     for (let tensorArray of args) {
       this.add(...tensorArray);
     }
@@ -49,7 +50,7 @@ abstract class BaseBuffer {
     this.full = false;
   }
 
-  sample(batchSize: number): tf.Tensor[] {
+  sample(batchSize: number): tfCore.Tensor[] {
     return tf.tidy(() => {
       const upperBound = this.full ? this.bufferSize : this.pos;
       const batchInds = tf.randomUniformInt([batchSize], 0, upperBound);
@@ -57,18 +58,18 @@ abstract class BaseBuffer {
     });
   }
 
-  protected abstract getSamples(indices: tf.Tensor): tf.Tensor[];
+  protected abstract getSamples(indices: tfCore.Tensor): tfCore.Tensor[];
 }
 
 export class RolloutBuffer extends BaseBuffer {
-  observations: tf.Tensor[];
-  actions: tf.Tensor[];
-  rewards: tf.Tensor[];
-  returns: tf.Tensor;
-  episodeStarts: tf.Tensor[];
-  logProbs: tf.Tensor[];
-  values: tf.Tensor[];
-  advantages: tf.Tensor[];
+  observations: tfCore.Tensor[];
+  actions: tfCore.Tensor[];
+  rewards: tfCore.Tensor[];
+  returns: tfCore.Tensor;
+  episodeStarts: tfCore.Tensor[];
+  logProbs: tfCore.Tensor[];
+  values: tfCore.Tensor[];
+  advantages: tfCore.Tensor[];
   stackedTensors: RolloutBufferResult | null;
 
   gaeLambda: number;
@@ -125,12 +126,12 @@ export class RolloutBuffer extends BaseBuffer {
   }
 
   add(
-    obs: tf.Tensor,
-    action: tf.Tensor,
-    reward: tf.Tensor,
-    episodeStart: tf.Tensor,
-    value: tf.Tensor,
-    logProb: tf.Tensor
+    obs: tfCore.Tensor,
+    action: tfCore.Tensor,
+    reward: tfCore.Tensor,
+    episodeStart: tfCore.Tensor,
+    value: tfCore.Tensor,
+    logProb: tfCore.Tensor
   ): void {
     this.observations.push(obs);
     this.actions.push(action);
@@ -148,7 +149,7 @@ export class RolloutBuffer extends BaseBuffer {
   *get(batchSize: number): Generator<RolloutBufferSamples> {
     let indicesArray = Array.from(Array(this.pos).keys());
     tf.util.shuffle(indicesArray);
-    const indices = tf.tensor(indicesArray, [this.pos], 'int32');
+    const indices = tfCore.tensor(indicesArray, [this.pos], 'int32');
     for (let startIdx = 0; startIdx < this.pos; startIdx += batchSize) {
       let endIndex = startIdx + batchSize;
       if (endIndex >= this.pos) {
@@ -162,7 +163,7 @@ export class RolloutBuffer extends BaseBuffer {
     tf.dispose(indices);
   }
 
-  protected getSamples(indices: tf.Tensor): RolloutBufferSamples {
+  protected getSamples(indices: tfCore.Tensor): RolloutBufferSamples {
     if (this.stackedTensors === null) {
       this.computeStackedTensors();
     }
@@ -203,13 +204,16 @@ export class RolloutBuffer extends BaseBuffer {
     };
   }
 
-  computeReturnsAndAdvantages(lastValues: tf.Tensor, dones: tf.Tensor): void {
+  computeReturnsAndAdvantages(
+    lastValues: tfCore.Tensor,
+    dones: tfCore.Tensor
+  ): void {
     lastValues = lastValues.flatten();
 
     let lastGaeLam = tf.zeros(dones.shape);
     for (let step = this.bufferSize - 1; step >= 0; step--) {
-      let nextNonTerminal: tf.Tensor;
-      let nextValues: tf.Tensor;
+      let nextNonTerminal: tfCore.Tensor;
+      let nextValues: tfCore.Tensor;
       if (step == this.bufferSize - 1) {
         nextNonTerminal = tf.scalar(1).sub(dones.asType('float32'));
         nextValues = lastValues;
@@ -242,12 +246,12 @@ export class RolloutBuffer extends BaseBuffer {
 }
 
 export class ReplayBuffer extends BaseBuffer {
-  observations: tf.Tensor[];
-  nextObservations: tf.Tensor[];
-  actions: tf.Tensor[];
-  rewards: tf.Tensor[];
-  dones: tf.Tensor[];
-  timeouts: tf.Tensor[];
+  observations: tfCore.Tensor[];
+  nextObservations: tfCore.Tensor[];
+  actions: tfCore.Tensor[];
+  rewards: tfCore.Tensor[];
+  dones: tfCore.Tensor[];
+  timeouts: tfCore.Tensor[];
 
   constructor(
     bufferSize: number,
@@ -285,12 +289,12 @@ export class ReplayBuffer extends BaseBuffer {
   }
 
   add(
-    obs: tf.Tensor,
-    nextObs: tf.Tensor,
-    action: tf.Tensor,
-    reward: tf.Tensor,
-    done: tf.Tensor,
-    truncated: tf.Tensor
+    obs: tfCore.Tensor,
+    nextObs: tfCore.Tensor,
+    action: tfCore.Tensor,
+    reward: tfCore.Tensor,
+    done: tfCore.Tensor,
+    truncated: tfCore.Tensor
   ): void {
     if (this.full) {
       tf.dispose([
@@ -328,14 +332,14 @@ export class ReplayBuffer extends BaseBuffer {
     return super.sample(batchSize) as ReplayBufferSamples;
   }
 
-  protected getSamples(indices: tf.Tensor): ReplayBufferSamples {
+  protected getSamples(indices: tfCore.Tensor): ReplayBufferSamples {
     return tf.tidy(() => {
-      const observations: tf.Tensor[] = [];
-      const nextObservations: tf.Tensor[] = [];
-      const actions: tf.Tensor[] = [];
-      const rewards: tf.Tensor[] = [];
-      const dones: tf.Tensor[] = [];
-      const timeouts: tf.Tensor[] = [];
+      const observations: tfCore.Tensor[] = [];
+      const nextObservations: tfCore.Tensor[] = [];
+      const actions: tfCore.Tensor[] = [];
+      const rewards: tfCore.Tensor[] = [];
+      const dones: tfCore.Tensor[] = [];
+      const timeouts: tfCore.Tensor[] = [];
 
       Array.from(indices.dataSync()).forEach((indexValue) => {
         observations.push(this.observations[indexValue]);
