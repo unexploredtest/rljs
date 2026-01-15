@@ -1,6 +1,5 @@
 import * as tfCore from '@tensorflow/tfjs';
 import { tf } from '../core';
-import * as gym from '@unexploredtest/gymjs';
 
 import {
   ReplayBufferSamples,

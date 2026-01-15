@@ -3,7 +3,7 @@ import { tf } from '../core';
 import * as gym from '@unexploredtest/gymjs';
 
 import { OnPolicyAlgorithm } from '../common/on_policy_algorithm';
-import { clipGradNorm, explainedVariance, tensorToTf } from '../common/utils';
+import { clipGradNorm, explainedVariance, tensorToCore, tensorToTf } from '../common/utils';
 import {
   DQNHyperParams,
   QNetworkParams,
@@ -148,9 +148,9 @@ export class DQN<
       return tf.tensor([this.actionSpace.sample()]);
     } else {
       if (obs instanceof tf.Tensor) {
-        return this.policy.predict(tensorToTf(obs), deterministic);
+        return tensorToCore(this.policy.predict(tensorToTf(obs), deterministic));
       } else {
-        return this.policy.predict(obs, deterministic);
+        return tensorToCore(this.policy.predict(obs, deterministic));
       }
     }
   }

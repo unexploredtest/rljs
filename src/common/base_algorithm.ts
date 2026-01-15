@@ -6,7 +6,7 @@ import { BasePolicy, ActorCriticPolicy } from './policies';
 import { BaseHyperParams } from './type_aliases';
 import { Logger } from './logger';
 import { BaseCallback } from './callbacks';
-import { tensorToTf } from './utils';
+import { tensorToCore, tensorToTf } from './utils';
 
 export abstract class BaseAlgorithm<
   ObsType extends tfCore.Tensor,
@@ -96,9 +96,9 @@ export abstract class BaseAlgorithm<
     }
 
     if (obs instanceof tfCore.Tensor) {
-      return this.policy.predict(tensorToTf(obs), deterministic);
+      return tensorToCore(this.policy.predict(tensorToTf(obs), deterministic));
     } else {
-      return this.policy.predict(obs, deterministic);
+      return tensorToCore(this.policy.predict(obs, deterministic));
     }
   }
 
