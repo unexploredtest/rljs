@@ -1,16 +1,14 @@
-import * as tfCore from '@tensorflow/tfjs';
-import { tf } from '../core';
+import * as tf from '@tensorflow/tfjs';
 import * as gym from '@unexploredtest/gymjs';
 
 import { BasePolicy, ActorCriticPolicy } from './policies';
 import { BaseHyperParams } from './type_aliases';
 import { Logger } from './logger';
 import { BaseCallback } from './callbacks';
-import { tensorToTf } from './utils';
 
 export abstract class BaseAlgorithm<
-  ObsType extends tfCore.Tensor,
-  ActType extends tfCore.Tensor | number,
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
 > {
   public env: gym.Env<ObsType, ActType>;
   public observationSpace: gym.spaces.Space<ObsType>;
@@ -20,8 +18,8 @@ export abstract class BaseAlgorithm<
   public numTimestepsAtStart: number;
   public nUpdates: number;
   public policy: BasePolicy<ObsType, ActType> | null;
-  public lastObs: tfCore.Tensor | null;
-  public lastEpisodeStarts: tfCore.Tensor | null;
+  public lastObs: tf.Tensor | null;
+  public lastEpisodeStarts: tf.Tensor | null;
   public logger: Logger;
   public startTime: number;
   public totalRewards: number[];
@@ -64,12 +62,11 @@ export abstract class BaseAlgorithm<
     resetNumTimesteps: boolean = false
   ): Promise<BaseCallback<ObsType, ActType> | null> {
     if (this.lastObs === null) {
-      const [obsRaw, _] = this.env.reset();
-      this.lastObs = tensorToTf(obsRaw);
-      tf.dispose(obsRaw);
+      let [obs, _] = this.env.reset();
+      this.lastObs = obs;
     }
 
-    this.lastEpisodeStarts = tfCore.tensor([true], [1], 'float32');
+    this.lastEpisodeStarts = tf.tensor([true], [1], 'float32');
 
     if (resetNumTimesteps) {
       this.numTimesteps = 0;
@@ -94,12 +91,7 @@ export abstract class BaseAlgorithm<
     if (this.policy === null) {
       throw new Error('Policy not defined!');
     }
-
-    if (obs instanceof tfCore.Tensor) {
-      return this.policy.predict(tensorToTf(obs), deterministic);
-    } else {
-      return this.policy.predict(obs, deterministic);
-    }
+    return this.policy.predict(obs, deterministic);
   }
 
   abstract saveModels(...URLs: string[]): Promise<void>;

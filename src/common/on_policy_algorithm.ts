@@ -1,5 +1,4 @@
-import * as tfCore from '@tensorflow/tfjs';
-import { tf } from '../core';
+import * as tf from '@tensorflow/tfjs';
 import * as gym from '@unexploredtest/gymjs';
 
 import { BaseAlgorithm } from './base_algorithm';
@@ -7,12 +6,12 @@ import { RolloutBuffer } from './buffers';
 import { ActorCriticPolicy } from './policies';
 import { OnPolicyHyperParams } from './type_aliases';
 import { ActorCriticParams } from './type_aliases';
-import { clipTensor, tensorToCore } from './utils';
+import { clipTensor } from './utils';
 import { BaseCallback } from './callbacks';
 
 export abstract class OnPolicyAlgorithm<
-  ObsType extends tfCore.Tensor,
-  ActType extends tfCore.Tensor | number,
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
 > extends BaseAlgorithm<ObsType, ActType> {
   public buffer: RolloutBuffer;
   public nSteps: number;
@@ -79,7 +78,7 @@ export abstract class OnPolicyAlgorithm<
         this.lastObs,
         false
       );
-      let action: tfCore.Tensor | number;
+      let action: tf.Tensor | number;
       if (this.actionSpace instanceof gym.spaces.Discrete) {
         const actionData = await actions.asScalar().data();
         action = actionData[0];
@@ -107,7 +106,6 @@ export abstract class OnPolicyAlgorithm<
         }
 
         action = action.reshape(this.actionSpace.shape);
-        action = tensorToCore(action);
       } else if (
         this.actionSpace instanceof gym.spaces.MultiDiscrete ||
         this.actionSpace instanceof gym.spaces.MultiBinary
@@ -222,15 +220,9 @@ export abstract class OnPolicyAlgorithm<
   dumpLogs(iteration: number = 0) {
     this.logger.record('Iteration', iteration);
 
-    if (this.totalRewards.length > 0 && this.episodeLengths.length > 0) {
-      this.logger.recordMean(
-        'Reward Mean',
-        tf.util.sum(this.totalRewards) / this.totalRewards.length
-      );
-      this.logger.recordMean(
-        'Episode Length Mean',
-        tf.util.sum(this.episodeLengths) / this.episodeLengths.length
-      );
+    if(this.totalRewards.length > 0 && this.episodeLengths.length > 0) {
+      this.logger.recordMean('Reward Mean', tf.util.sum(this.totalRewards) / this.totalRewards.length);
+      this.logger.recordMean('Episode Length Mean', tf.util.sum(this.episodeLengths) / this.episodeLengths.length);
     }
     // Calculate the time difference in milliseconds
     const timeElapsed = (Date.now() - this.startTime) / 1000;

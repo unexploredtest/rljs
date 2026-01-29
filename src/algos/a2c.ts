@@ -1,5 +1,4 @@
-import * as tfCore from '@tensorflow/tfjs';
-import { tf } from '../core';
+import * as tf from '@tensorflow/tfjs';
 import * as gym from '@unexploredtest/gymjs';
 
 import { OnPolicyAlgorithm } from '../common/on_policy_algorithm';
@@ -31,8 +30,8 @@ const DEFAULT_POLICY_PARAMETERS: ActorCriticParams = {
 };
 
 export class A2C<
-  ObsType extends tfCore.Tensor,
-  ActType extends tfCore.Tensor | number,
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
 > extends OnPolicyAlgorithm<ObsType, ActType> {
   public normalizeadvantage: boolean;
 
@@ -99,7 +98,7 @@ export class A2C<
 
       tf.tidy(() => {
         const result = this.policy.optim.computeGradients(optFunc);
-        const normedGrad: tfCore.NamedTensorMap = clipGradNorm(
+        const normedGrad: tf.NamedTensorMap = clipGradNorm(
           result.grads,
           this.maxGradNorm
         );

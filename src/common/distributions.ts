@@ -1,12 +1,11 @@
-import * as tfCore from '@tensorflow/tfjs';
-import { tf } from '../core';
+import * as tf from '@tensorflow/tfjs';
 
 export abstract class Distribution {
-  abstract probaDistribution(...args: tfCore.Tensor[]): void;
-  abstract logProb(actions: tfCore.Tensor): tfCore.Tensor;
-  abstract entropy(): tfCore.Tensor;
-  abstract sample(): tfCore.Tensor;
-  abstract mode(): tfCore.Tensor;
+  abstract probaDistribution(...args: tf.Tensor[]): void;
+  abstract logProb(actions: tf.Tensor): tf.Tensor;
+  abstract entropy(): tf.Tensor;
+  abstract sample(): tf.Tensor;
+  abstract mode(): tf.Tensor;
 
   getActions(deterministic: boolean) {
     if (deterministic) {
@@ -18,18 +17,18 @@ export abstract class Distribution {
 }
 
 export class CategoricalDistribution extends Distribution {
-  private actionLogits: tfCore.Tensor | null;
+  private actionLogits: tf.Tensor | null;
 
   constructor() {
     super();
     this.actionLogits = null;
   }
 
-  probaDistribution(actionLogits: tfCore.Tensor) {
+  probaDistribution(actionLogits: tf.Tensor) {
     this.actionLogits = actionLogits;
   }
 
-  logProb(actions: tfCore.Tensor) {
+  logProb(actions: tf.Tensor) {
     // https://github.com/zemlyansky/ppo-tfjs/blob/main/ppo.js
     return tf.tidy(() => {
       if (this.actionLogits === null) {
@@ -46,7 +45,7 @@ export class CategoricalDistribution extends Distribution {
     });
   }
 
-  entropy(): tfCore.Tensor {
+  entropy(): tf.Tensor {
     return tf.tidy(() => {
       if (this.actionLogits === null) {
         throw new Error('Something went wrong!');
@@ -58,19 +57,19 @@ export class CategoricalDistribution extends Distribution {
     });
   }
 
-  sample(): tfCore.Tensor {
+  sample(): tf.Tensor {
     return tf.tidy(() => {
       if (this.actionLogits === null) {
         throw new Error('Something went wrong!');
       }
       let preds = this.actionLogits;
-      let action = tf.multinomial(preds as tfCore.Tensor2D, 1);
+      let action = tf.multinomial(preds as tf.Tensor2D, 1);
       action = action.reshape([1]);
       return action;
     });
   }
 
-  mode(): tfCore.Tensor {
+  mode(): tf.Tensor {
     if (this.actionLogits === null) {
       throw new Error('Something went wrong!');
     }
@@ -80,7 +79,7 @@ export class CategoricalDistribution extends Distribution {
 
 export class MultiCategoricalDistribution extends Distribution {
   private actionDim: number[];
-  // private actionLogits: tfCore.Tensor | null;
+  // private actionLogits: tf.Tensor | null;
   private catDists: CategoricalDistribution[];
 
   constructor(actionDim: number[]) {
@@ -89,7 +88,7 @@ export class MultiCategoricalDistribution extends Distribution {
     this.catDists = [];
   }
 
-  probaDistribution(actionLogits: tfCore.Tensor) {
+  probaDistribution(actionLogits: tf.Tensor) {
     this.catDists = tf.split(actionLogits, this.actionDim, 1).map((split) => {
       const catDist = new CategoricalDistribution();
       catDist.probaDistribution(split);
@@ -97,7 +96,7 @@ export class MultiCategoricalDistribution extends Distribution {
     });
   }
 
-  logProb(actions: tfCore.Tensor) {
+  logProb(actions: tf.Tensor) {
     return tf.tidy(() => {
       const size = (actions.shape as number[])[1];
       return tf
@@ -111,7 +110,7 @@ export class MultiCategoricalDistribution extends Distribution {
     });
   }
 
-  entropy(): tfCore.Tensor {
+  entropy(): tf.Tensor {
     return tf.tidy(() => {
       return tf
         .stack(
@@ -122,7 +121,7 @@ export class MultiCategoricalDistribution extends Distribution {
     });
   }
 
-  sample(): tfCore.Tensor {
+  sample(): tf.Tensor {
     return tf.tidy(() => {
       return tf.stack(
         this.catDists.map((catDis) => catDis.sample()),
@@ -131,7 +130,7 @@ export class MultiCategoricalDistribution extends Distribution {
     });
   }
 
-  mode(): tfCore.Tensor {
+  mode(): tf.Tensor {
     return tf.tidy(() => {
       return tf.stack(
         this.catDists.map((catDis) => catDis.mode()),
@@ -143,8 +142,8 @@ export class MultiCategoricalDistribution extends Distribution {
 
 export class DiagGaussianDistribution extends Distribution {
   private actionDim: number;
-  private meanActions: tfCore.Tensor | null;
-  public logStd: tfCore.Variable | null;
+  private meanActions: tf.Tensor | null;
+  public logStd: tf.Variable | null;
   private logStdInit: number;
 
   constructor(actionDim: number, logStdInit: number) {
@@ -166,14 +165,14 @@ export class DiagGaussianDistribution extends Distribution {
     );
   }
 
-  probaDistribution(meanActions: tfCore.Tensor) {
+  probaDistribution(meanActions: tf.Tensor) {
     // this.meanActions = meanActions;
     // this.logStd = logStd;
     this.meanActions = meanActions;
   }
 
   // https://github.com/zemlyansky/ppo-tfjs/blob/main/ppo.js
-  logProb(actions: tfCore.Tensor): tfCore.Tensor {
+  logProb(actions: tf.Tensor): tf.Tensor {
     return tf.tidy(() => {
       if (
         this.logStd === null ||
@@ -198,7 +197,7 @@ export class DiagGaussianDistribution extends Distribution {
         return 0.5 + 0.5 * math.log(2 * math.pi) + torch.log(self.scale)
 */
 
-  entropy(): tfCore.Tensor {
+  entropy(): tf.Tensor {
     return tf.tidy(() => {
       if (this.meanActions === null || this.logStd === null) {
         throw new Error('Something went wrong!');
@@ -213,7 +212,7 @@ export class DiagGaussianDistribution extends Distribution {
     });
   }
 
-  sample(): tfCore.Tensor {
+  sample(): tf.Tensor {
     return tf.tidy(() => {
       if (this.meanActions === null || this.logStd === null) {
         throw new Error('Something went wrong!');
@@ -227,7 +226,7 @@ export class DiagGaussianDistribution extends Distribution {
     });
   }
 
-  mode(): tfCore.Tensor {
+  mode(): tf.Tensor {
     if (this.meanActions === null) {
       throw new Error('Something went wrong!');
     }
@@ -235,7 +234,7 @@ export class DiagGaussianDistribution extends Distribution {
   }
 }
 
-function sumIndependentDims(tensor: tfCore.Tensor): tfCore.Tensor {
+function sumIndependentDims(tensor: tf.Tensor): tf.Tensor {
   if (tensor.shape.length > 1) {
     return tensor.sum(1);
   } else {

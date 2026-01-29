@@ -1,5 +1,4 @@
-import * as tfCore from '@tensorflow/tfjs';
-import { tf } from '../core';
+import * as tf from '@tensorflow/tfjs';
 import * as gym from '@unexploredtest/gymjs';
 
 import {
@@ -16,13 +15,13 @@ import {
 } from './type_aliases';
 
 export abstract class baseModel<
-  ObsType extends tfCore.Tensor,
-  ActType extends tfCore.Tensor | number,
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
 > {
   protected observationSpace: gym.spaces.Space<ObsType>;
   protected actionSpace: gym.spaces.Space<ActType>;
   public activation: ActivationType;
-  public optim: tfCore.Optimizer;
+  public optim: tf.Optimizer;
   public lr: number;
 
   constructor(
@@ -49,18 +48,18 @@ export abstract class baseModel<
 }
 
 export abstract class BasePolicy<
-  ObsType extends tfCore.Tensor,
-  ActType extends tfCore.Tensor | number,
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
 > extends baseModel<ObsType, ActType> {
-  abstract predict(obs: tfCore.Tensor, deterministic: boolean): tfCore.Tensor;
+  abstract predict(obs: tf.Tensor, deterministic: boolean): tf.Tensor;
 }
 
 export class ActorCriticPolicy<
-  ObsType extends tfCore.Tensor,
-  ActType extends tfCore.Tensor | number,
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
 > extends BasePolicy<ObsType, ActType> {
-  public policyModel: tfCore.LayersModel;
-  public valueModel: tfCore.LayersModel;
+  public policyModel: tf.LayersModel;
+  public valueModel: tf.LayersModel;
 
   private actionDist: Distribution;
   private logStdInit: number;
@@ -102,16 +101,16 @@ export class ActorCriticPolicy<
   }
 
   forward(
-    obs: tfCore.Tensor,
+    obs: tf.Tensor,
     deterministic: boolean
-  ): [tfCore.Tensor, tfCore.Tensor, tfCore.Tensor] {
+  ): [tf.Tensor, tf.Tensor, tf.Tensor] {
     return tf.tidy(() => {
       if (obs.shape.length === 1) {
         obs = obs.reshape([-1, ...obs.shape]);
       }
       // obs.print();
-      let values = this.valueModel.predict(obs) as tfCore.Tensor;
-      let actionLogits = this.policyModel.predict(obs) as tfCore.Tensor;
+      let values = this.valueModel.predict(obs) as tf.Tensor;
+      let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
       // actionLogits.print()
       this.actionDist.probaDistribution(actionLogits);
       // if(this.actionDist instanceof CategoricalDistribution) {
@@ -127,12 +126,12 @@ export class ActorCriticPolicy<
     });
   }
 
-  predict(obs: tfCore.Tensor, deterministic: boolean): tfCore.Tensor {
+  predict(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
     return tf.tidy(() => {
       if (obs.shape.length === 1) {
         obs = obs.reshape([-1, ...obs.shape]);
       }
-      let actionLogits = this.policyModel.predict(obs) as tfCore.Tensor;
+      let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
       this.actionDist.probaDistribution(actionLogits);
       let actions = this.actionDist.getActions(deterministic);
       actions = actions.reshape(this.actionSpace.shape);
@@ -141,23 +140,23 @@ export class ActorCriticPolicy<
     });
   }
 
-  predictValues(obs: tfCore.Tensor): tfCore.Tensor {
+  predictValues(obs: tf.Tensor): tf.Tensor {
     return tf.tidy(() => {
       if (obs.shape.length === 1) {
         obs = obs.reshape([-1, ...obs.shape]);
       }
-      let values = this.valueModel.predict(obs) as tfCore.Tensor;
+      let values = this.valueModel.predict(obs) as tf.Tensor;
       return values;
     });
   }
 
-  evaluateActions(obs: tfCore.Tensor, actions: tfCore.Tensor) {
+  evaluateActions(obs: tf.Tensor, actions: tf.Tensor) {
     return tf.tidy(() => {
       if (obs.shape.length === 1) {
         obs = obs.reshape([-1, ...obs.shape]);
       }
-      let values = this.valueModel.predict(obs) as tfCore.Tensor;
-      let actionLogits = this.policyModel.predict(obs) as tfCore.Tensor;
+      let values = this.valueModel.predict(obs) as tf.Tensor;
+      let actionLogits = this.policyModel.predict(obs) as tf.Tensor;
       this.actionDist.probaDistribution(actionLogits);
       let logProb = this.actionDist.logProb(actions);
       let entropy = this.actionDist.entropy();
@@ -176,7 +175,7 @@ export class ActorCriticPolicy<
     this.valueModel = await tf.loadLayersModel(ValueURL);
   }
 
-  getLogStd(): tfCore.Tensor | undefined {
+  getLogStd(): tf.Tensor | undefined {
     if (this.actionDist instanceof DiagGaussianDistribution) {
       const logStd = this.actionDist.logStd?.clone();
       if (logStd) {
@@ -197,14 +196,14 @@ export class ActorCriticPolicy<
           units,
           activation: 'relu',
         })
-        .apply(l) as tfCore.SymbolicTensor;
+        .apply(l) as tf.SymbolicTensor;
     });
     if (this.actionSpace instanceof gym.spaces.Discrete) {
       l = tf.layers
         .dense({
           units: this.actionSpace.n,
         })
-        .apply(l) as tfCore.SymbolicTensor;
+        .apply(l) as tf.SymbolicTensor;
     } else if (this.actionSpace instanceof gym.spaces.Box) {
       const size = this.actionSpace.shape.reduce(
         (accumulator: number, currentValue: number) =>
@@ -215,14 +214,14 @@ export class ActorCriticPolicy<
         .dense({
           units: size,
         })
-        .apply(l) as tfCore.SymbolicTensor;
+        .apply(l) as tf.SymbolicTensor;
     } else if (this.actionSpace instanceof gym.spaces.MultiDiscrete) {
       const size = this.actionSpace.nVec.sum().asScalar().dataSync()[0];
       l = tf.layers
         .dense({
           units: size,
         })
-        .apply(l) as tfCore.SymbolicTensor;
+        .apply(l) as tf.SymbolicTensor;
     } else if (this.actionSpace instanceof gym.spaces.MultiBinary) {
       // we treat multibinary the same as multidiscrete
       const nVec = tf.ones(this.actionSpace.shape).mul(2);
@@ -231,7 +230,7 @@ export class ActorCriticPolicy<
         .dense({
           units: size,
         })
-        .apply(l) as tfCore.SymbolicTensor;
+        .apply(l) as tf.SymbolicTensor;
     } else {
       throw new Error('Unknown action space');
     }
@@ -247,23 +246,23 @@ export class ActorCriticPolicy<
           units: units,
           activation: 'relu',
         })
-        .apply(l) as tfCore.SymbolicTensor;
+        .apply(l) as tf.SymbolicTensor;
     });
     l = tf.layers
       .dense({
         units: 1,
         activation: 'linear',
       })
-      .apply(l) as tfCore.SymbolicTensor;
+      .apply(l) as tf.SymbolicTensor;
     return tf.model({ inputs: input, outputs: l });
   }
 }
 
 export class QNetworkPolicy<
-  ObsType extends tfCore.Tensor,
-  ActType extends tfCore.Tensor | number,
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
 > extends BasePolicy<ObsType, ActType> {
-  public model: tfCore.LayersModel;
+  public model: tf.LayersModel;
 
   constructor(
     observationSpace: gym.spaces.Space<ObsType>,
@@ -275,11 +274,11 @@ export class QNetworkPolicy<
     this.model = this.createModel(modelParams.net);
   }
 
-  forward(obs: tfCore.Tensor, deterministic: boolean): tfCore.Tensor {
-    return this.model.predict(obs) as tfCore.Tensor;
+  forward(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
+    return this.model.predict(obs) as tf.Tensor;
   }
 
-  predict(obs: tfCore.Tensor, deterministic: boolean): tfCore.Tensor {
+  predict(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
     return tf.tidy(() => {
       const qValues = this.forward(obs, deterministic);
       const action = qValues
@@ -307,14 +306,14 @@ export class QNetworkPolicy<
           units,
           activation: 'relu',
         })
-        .apply(l) as tfCore.SymbolicTensor;
+        .apply(l) as tf.SymbolicTensor;
     });
     if (this.actionSpace instanceof gym.spaces.Discrete) {
       l = tf.layers
         .dense({
           units: this.actionSpace.n,
         })
-        .apply(l) as tfCore.SymbolicTensor;
+        .apply(l) as tf.SymbolicTensor;
     } else {
       throw new Error('Unsupported action space');
     }
@@ -323,8 +322,8 @@ export class QNetworkPolicy<
 }
 
 export class DQNPolicy<
-  ObsType extends tfCore.Tensor,
-  ActType extends tfCore.Tensor | number,
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
 > extends BasePolicy<ObsType, ActType> {
   public qNet: QNetworkPolicy<ObsType, ActType>;
   public qNetTarget: QNetworkPolicy<ObsType, ActType>;
@@ -340,11 +339,11 @@ export class DQNPolicy<
     this.qNetTarget = this.createQNetwork(modelParams);
   }
 
-  forward(obs: tfCore.Tensor, deterministic: boolean): tfCore.Tensor {
-    return this.qNet.forward(obs, deterministic) as tfCore.Tensor;
+  forward(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
+    return this.qNet.forward(obs, deterministic) as tf.Tensor;
   }
 
-  predict(obs: tfCore.Tensor, deterministic: boolean): tfCore.Tensor {
+  predict(obs: tf.Tensor, deterministic: boolean): tf.Tensor {
     return this.qNet.predict(obs, deterministic);
   }
 

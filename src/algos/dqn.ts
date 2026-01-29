@@ -1,9 +1,8 @@
-import * as tfCore from '@tensorflow/tfjs';
-import { tf } from '../core';
+import * as tf from '@tensorflow/tfjs';
 import * as gym from '@unexploredtest/gymjs';
 
 import { OnPolicyAlgorithm } from '../common/on_policy_algorithm';
-import { clipGradNorm, explainedVariance, tensorToTf } from '../common/utils';
+import { clipGradNorm, explainedVariance } from '../common/utils';
 import {
   DQNHyperParams,
   QNetworkParams,
@@ -37,8 +36,8 @@ const DEFAULT_POLICY_PARAMETERS: QNetworkParams = {
 };
 
 export class DQN<
-  ObsType extends tfCore.Tensor,
-  ActType extends tfCore.Tensor | number,
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
 > extends OffPolicyAlgorithm<ObsType, ActType> {
   public policy: DQNPolicy<ObsType, ActType>;
 
@@ -124,7 +123,7 @@ export class DQN<
 
       tf.tidy(() => {
         const result = this.policy.optim.computeGradients(optFunc);
-        const normedGrad: tfCore.NamedTensorMap = clipGradNorm(
+        const normedGrad: tf.NamedTensorMap = clipGradNorm(
           result.grads,
           this.maxGradNorm
         );
@@ -139,7 +138,7 @@ export class DQN<
   }
 
   // Overrides the base_class predict function to include epsilon-greedy exploration.
-  override predict(obs: ObsType, deterministic: boolean): tfCore.Tensor {
+  override predict(obs: ObsType, deterministic: boolean): tf.Tensor {
     if (this.policy === null) {
       throw new Error('Policy not defined!');
     }
@@ -147,11 +146,7 @@ export class DQN<
     if (!deterministic && Math.random() < this.explorationRate) {
       return tf.tensor([this.actionSpace.sample()]);
     } else {
-      if (obs instanceof tf.Tensor) {
-        return this.policy.predict(tensorToTf(obs), deterministic);
-      } else {
-        return this.policy.predict(obs, deterministic);
-      }
+      return this.policy.predict(obs, deterministic);
     }
   }
 

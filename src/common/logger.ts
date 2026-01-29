@@ -1,3 +1,5 @@
+import * as tf from '@tensorflow/tfjs';
+
 export class Logger {
   // public level: Level;
   private nameToValue: Record<string, number>;

@@ -1,13 +1,12 @@
-import * as tfCore from '@tensorflow/tfjs';
-import { tf } from '../core';
+import * as tf from '@tensorflow/tfjs';
 
 // https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html
 export function clipGradNorm(
-  gradients: tfCore.NamedTensorMap,
+  gradients: tf.NamedTensorMap,
   maxGradNorm: number
-): tfCore.NamedTensorMap {
+): tf.NamedTensorMap {
   return tf.tidy(() => {
-    const normedGrad: tfCore.NamedTensorMap = {};
+    const normedGrad: tf.NamedTensorMap = {};
     for (const key in gradients) {
       const tensorGrad = gradients[key];
       const totalNorm = tf.norm(tensorGrad);
@@ -22,10 +21,10 @@ export function clipGradNorm(
 }
 
 export function clipTensor(
-  tensor: tfCore.Tensor,
-  low: tfCore.Tensor,
-  high: tfCore.Tensor
-): tfCore.Tensor {
+  tensor: tf.Tensor,
+  low: tf.Tensor,
+  high: tf.Tensor
+): tf.Tensor {
   return tf.tidy(() => {
     const upperFlow = high.sub(tensor);
     const upperFixed = tensor.add(upperFlow);
@@ -42,9 +41,9 @@ export function clipTensor(
 
 // From stable baselines
 export function explainedVariance(
-  yPred: tfCore.Tensor,
-  yTrue: tfCore.Tensor
-): tfCore.Tensor {
+  yPred: tf.Tensor,
+  yTrue: tf.Tensor
+): tf.Tensor {
   /*
     Computes fraction of variance that ypred explains about y.
     Returns 1 - Var[y-ypred] / Var[y]
@@ -63,12 +62,4 @@ export function explainedVariance(
     const varDif = tf.moments(yTrue.flatten().sub(yPred.flatten())).variance;
     return tf.scalar(1).sub(varDif.div(varY));
   });
-}
-
-export function tensorToTf(tensor: tfCore.Tensor): tfCore.Tensor {
-  return tf.tensor(tensor.dataSync(), tensor.shape, tensor.dtype);
-}
-
-export function tensorToCore(tensor: tfCore.Tensor): tfCore.Tensor {
-  return tfCore.tensor(tensor.dataSync(), tensor.shape, tensor.dtype);
 }

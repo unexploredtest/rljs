@@ -1,4 +1,4 @@
-import * as tfCore from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs';
 
 // Couldn't find where TF exported this type so added it here manually
 export type ActivationType =
@@ -19,29 +19,29 @@ export type ActivationType =
   | 'gelu_new';
 
 export type RolloutBufferSamples = [
-  observations: tfCore.Tensor,
-  actions: tfCore.Tensor,
-  oldValues: tfCore.Tensor,
-  oldLogProb: tfCore.Tensor,
-  advantages: tfCore.Tensor,
-  returns: tfCore.Tensor,
+  observations: tf.Tensor,
+  actions: tf.Tensor,
+  oldValues: tf.Tensor,
+  oldLogProb: tf.Tensor,
+  advantages: tf.Tensor,
+  returns: tf.Tensor,
 ];
 
 export type RolloutBufferResult = {
-  observations: tfCore.Tensor;
-  actions: tfCore.Tensor;
-  values: tfCore.Tensor;
-  logProb: tfCore.Tensor;
-  advantages: tfCore.Tensor;
+  observations: tf.Tensor;
+  actions: tf.Tensor;
+  values: tf.Tensor;
+  logProb: tf.Tensor;
+  advantages: tf.Tensor;
 };
 
 export type ReplayBufferSamples = [
-  observations: tfCore.Tensor,
-  nextObservations: tfCore.Tensor,
-  actions: tfCore.Tensor,
-  rewards: tfCore.Tensor,
-  dones: tfCore.Tensor,
-  timeouts: tfCore.Tensor,
+  observations: tf.Tensor,
+  nextObservations: tf.Tensor,
+  actions: tf.Tensor,
+  rewards: tf.Tensor,
+  dones: tf.Tensor,
+  timeouts: tf.Tensor,
 ];
 
 export interface BaseHyperParams {}
@@ -89,7 +89,7 @@ export interface DQNHyperParams extends OffPolicyHyperParams {
 export interface BaseModelParams {
   lr: number;
   activation: ActivationType;
-  optim?: tfCore.Optimizer;
+  optim?: tf.Optimizer;
 }
 
 export interface ActorCriticParams extends BaseModelParams {

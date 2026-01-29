@@ -1,5 +1,4 @@
-import * as tfCore from '@tensorflow/tfjs';
-import { tf } from '../core';
+import * as tf from '@tensorflow/tfjs';
 import * as gym from '@unexploredtest/gymjs';
 
 import { BaseAlgorithm } from './base_algorithm';
@@ -7,12 +6,12 @@ import { ReplayBuffer } from './buffers';
 import { ActorCriticPolicy, BasePolicy } from './policies';
 import { BaseModelParams, OffPolicyHyperParams } from './type_aliases';
 import { ActorCriticParams } from './type_aliases';
-import { clipTensor, tensorToCore, tensorToTf } from './utils';
+import { clipTensor } from './utils';
 import { BaseCallback } from './callbacks';
 
 export abstract class OffPolicyAlgorithm<
-  ObsType extends tfCore.Tensor,
-  ActType extends tfCore.Tensor | number,
+  ObsType extends tf.Tensor,
+  ActType extends tf.Tensor | number,
 > extends BaseAlgorithm<ObsType, ActType> {
   public buffer: ReplayBuffer;
   public bufferSize: number;
@@ -59,11 +58,11 @@ export abstract class OffPolicyAlgorithm<
   abstract train(): Promise<void>;
 
   private storeTransition(
-    bufferAction: tfCore.Tensor,
-    newObs: tfCore.Tensor,
-    reward: tfCore.Tensor,
-    dones: tfCore.Tensor,
-    truns: tfCore.Tensor
+    bufferAction: tf.Tensor,
+    newObs: tf.Tensor,
+    reward: tf.Tensor,
+    dones: tf.Tensor,
+    truns: tf.Tensor
   ) {
     if (this.lastObs === null) {
       throw new Error("Last Obs can't be null! Reset the environment first.");
@@ -72,7 +71,7 @@ export abstract class OffPolicyAlgorithm<
     this.buffer.add(this.lastObs, newObs, bufferAction, reward, dones, truns);
   }
 
-  private sampleAction(): [tfCore.Tensor, tfCore.Tensor] {
+  private sampleAction(): [tf.Tensor, tf.Tensor] {
     if (this.policy === null) {
       throw new Error('Policy should be defined.');
     }
@@ -81,8 +80,8 @@ export abstract class OffPolicyAlgorithm<
       throw new Error('Last obs must not be null!');
     }
 
-    let unscaledAction: tfCore.Tensor;
-    let action: tfCore.Tensor;
+    let unscaledAction: tf.Tensor;
+    let action: tf.Tensor;
 
     if (this.numTimesteps < this.learningStarts) {
       const action = this.actionSpace.sample();
@@ -122,7 +121,7 @@ export abstract class OffPolicyAlgorithm<
     while (numCollectedSteps < this.trainFreq) {
       let [actions, bufferActions] = this.sampleAction();
 
-      let action: tfCore.Tensor | number;
+      let action: tf.Tensor | number;
       if (this.actionSpace instanceof gym.spaces.Discrete) {
         const actionData = await actions.asScalar().data();
         action = actionData[0];
@@ -149,16 +148,13 @@ export abstract class OffPolicyAlgorithm<
         }
 
         action = action.reshape(this.actionSpace.shape);
-        action = tensorToCore(action);
       } else {
         throw new Error('Unknown action space');
       }
 
-      let [obsRaw, reward, done, truncated, info] = await this.env.step(
+      let [obs, reward, done, truncated, info] = await this.env.step(
         action as ActType
       );
-      const obs = tensorToTf(obsRaw);
-      tf.dispose(obsRaw);
       this.totalReward += reward;
       this.episodeLength++;
 
@@ -250,15 +246,9 @@ export abstract class OffPolicyAlgorithm<
   dumpLogs(iteration: number = 0) {
     this.logger.record('Iteration', iteration);
 
-    if (this.totalRewards.length > 0 && this.episodeLengths.length > 0) {
-      this.logger.recordMean(
-        'Reward Mean',
-        tf.util.sum(this.totalRewards) / this.totalRewards.length
-      );
-      this.logger.recordMean(
-        'Episode Length Mean',
-        tf.util.sum(this.episodeLengths) / this.episodeLengths.length
-      );
+    if(this.totalRewards.length > 0 && this.episodeLengths.length > 0) {
+      this.logger.recordMean('Reward Mean', tf.util.sum(this.totalRewards) / this.totalRewards.length);
+      this.logger.recordMean('Episode Length Mean', tf.util.sum(this.episodeLengths) / this.episodeLengths.length);
     }
     // Calculate the time difference in milliseconds
     const timeElapsed = (Date.now() - this.startTime) / 1000;
