@@ -143,6 +143,10 @@ export class DQN<
       throw new Error('Policy not defined!');
     }
 
+    if (obs.shape.length === 1) {
+      obs = obs.reshape([-1, ...obs.shape]);
+    }
+
     if (!deterministic && Math.random() < this.explorationRate) {
       return tf.tensor([this.actionSpace.sample()]);
     } else {
