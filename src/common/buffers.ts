@@ -207,7 +207,7 @@ export class RolloutBuffer extends BaseBuffer {
     lastValues = lastValues.flatten();
 
     let lastGaeLam = tf.zeros(dones.shape);
-    for (let step = this.bufferSize - 1; step >= 0; step--) {
+    for (let step = this.size - 1; step >= 0; step--) {
       let nextNonTerminal: tf.Tensor;
       let nextValues: tf.Tensor;
       if (step == this.bufferSize - 1) {
