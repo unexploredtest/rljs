@@ -150,13 +150,10 @@ export class RolloutBuffer extends BaseBuffer {
     tf.util.shuffle(indicesArray);
     const indices = tf.tensor(indicesArray, [this.pos], 'int32');
     for (let startIdx = 0; startIdx < this.pos; startIdx += batchSize) {
-      let endIndex = startIdx + batchSize;
-      if (endIndex >= this.pos) {
-        endIndex = this.pos - 1;
-      }
+      const actualBatchSize = Math.min(batchSize, this.pos - startIdx);
 
       yield this.getSamples(
-        indices.gather(tf.range(startIdx, endIndex, 1, 'int32'))
+        indices.gather(tf.range(startIdx, startIdx + actualBatchSize, 1, 'int32'))
       );
     }
     tf.dispose(indices);
