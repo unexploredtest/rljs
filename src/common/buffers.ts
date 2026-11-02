@@ -153,7 +153,9 @@ export class RolloutBuffer extends BaseBuffer {
       const actualBatchSize = Math.min(batchSize, this.pos - startIdx);
 
       yield this.getSamples(
-        indices.gather(tf.range(startIdx, startIdx + actualBatchSize, 1, 'int32'))
+        indices.gather(
+          tf.range(startIdx, startIdx + actualBatchSize, 1, 'int32')
+        )
       );
     }
     tf.dispose(indices);
