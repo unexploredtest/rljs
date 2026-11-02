@@ -101,6 +101,7 @@ export class RolloutBuffer extends BaseBuffer {
     tf.dispose([
       this.observations,
       this.actions,
+      this.rewards,
       this.returns,
       this.episodeStarts,
       this.values,
