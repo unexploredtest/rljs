@@ -246,9 +246,15 @@ export abstract class OffPolicyAlgorithm<
   dumpLogs(iteration: number = 0) {
     this.logger.record('Iteration', iteration);
 
-    if(this.totalRewards.length > 0 && this.episodeLengths.length > 0) {
-      this.logger.recordMean('Reward Mean', tf.util.sum(this.totalRewards) / this.totalRewards.length);
-      this.logger.recordMean('Episode Length Mean', tf.util.sum(this.episodeLengths) / this.episodeLengths.length);
+    if (this.totalRewards.length > 0 && this.episodeLengths.length > 0) {
+      this.logger.recordMean(
+        'Reward Mean',
+        tf.util.sum(this.totalRewards) / this.totalRewards.length
+      );
+      this.logger.recordMean(
+        'Episode Length Mean',
+        tf.util.sum(this.episodeLengths) / this.episodeLengths.length
+      );
     }
     // Calculate the time difference in milliseconds
     const timeElapsed = (Date.now() - this.startTime) / 1000;
