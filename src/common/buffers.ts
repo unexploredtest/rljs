@@ -30,9 +30,9 @@ abstract class BaseBuffer {
 
   get size(): number {
     if (this.full) {
-      return this.pos;
-    } else {
       return this.bufferSize;
+    } else {
+      return this.pos;
     }
   }
 
